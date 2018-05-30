@@ -282,4 +282,3 @@ class StoneAlreadyPlacedException extends BadInputStoneException {
         super(message);
     }
 }
-

@@ -96,5 +96,3 @@ public class Gomoku extends JFrame {
         Gomoku gomoku = new Gomoku();
     }
 }
-
-
