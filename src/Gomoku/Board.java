@@ -5,6 +5,14 @@
 package Gomoku;
 
 import java.awt.Point;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.List;
@@ -21,7 +29,7 @@ class Stone {
     
     
     Stone(int i, int j, StoneType type) throws OutOfBoardRangeException {
-        if (i < 1 || i > Borad.n || j < 1 || j > Borad.n)
+        if (i < 1 || i > Board.n || j < 1 || j > Board.n)
             throw new OutOfBoardRangeException();
         this.point = new Point(i, j);
         this.type = type;
@@ -71,68 +79,130 @@ class Stone {
 }
 
 
-class Borad {
-    private boolean gameStarted;
-    private boolean playerColorChosen;
-    private StoneType player1StoneType, player2;
-    private int preSetStones;
-    private StoneType[][] borad;
-    private Stack<Stone> history;
+class Board {
+    private final DataChangeSupport<Boolean> gameStartedChangeSupport;
+    private final DataChangeSupport<Integer> historySizeChangeSupport;
+    private final List<Integer> indexOfRowStones;
+    private final StoneType[][] board;
+    private final Stack<Stone> history;
+    private StoneType player1StoneType;
+    private int presetStoneNumber;
+    private boolean rowStonesUpdated;
+    
     public static final int n = 15;
     private static final int[] dx = {1, 1, 0, -1};
     private static final int[] dy = {0, 1, 1, 1};
     
     
-    public Borad() {
+    public Board() {
         history = new Stack<Stone>();
-        borad = new StoneType[n + 2][n + 2];
-        gameStarted = false;
-        playerColorChosen = false;
-        player1StoneType = player2 = StoneType.SPACE;
-        preSetStones = 5;
+        board = new StoneType[n + 2][n + 2];
+        gameStartedChangeSupport = new DataChangeSupport<Boolean>(this, false);
+        historySizeChangeSupport = new DataChangeSupport<Integer>(this, 0);
+        player1StoneType = StoneType.SPACE;
+        presetStoneNumber = 5;
+        rowStonesUpdated = false;
+        indexOfRowStones = new ArrayList<Integer>();
         reset();
     }
     
     
     public void newGame() {
         reset();
-        gameStarted = true;
+        gameStartedChangeSupport.setValue(true);
     }
     
     
     public void reset() {
-        gameStarted = false;
-        playerColorChosen = false;
-        player1StoneType = player2 = StoneType.SPACE;
-        preSetStones = 5;
+        gameStartedChangeSupport.setValue(false);
+        player1StoneType = StoneType.SPACE;
+        presetStoneNumber = 5;
+        rowStonesUpdated = false;
+        indexOfRowStones.clear();
         history.clear();
+        historySizeChangeSupport.setValue(0);
         for (int i = 0; i < n + 2; ++i) {
             for (int j = 0; j < n + 2; ++j)
-                borad[i][j] = StoneType.SPACE;
+                board[i][j] = StoneType.SPACE;
         }
     }
     
     
+    public void loadGame(File file) throws IOException, BadInputStoneException {
+        reset();
+        DataInputStream inputStream = new DataInputStream(new FileInputStream(file));
+        gameStartedChangeSupport.setValue(inputStream.readBoolean());
+        int c = inputStream.readInt();
+        switch (c) {
+            case 1:
+                player1StoneType = StoneType.BLACK;
+                break;
+            case 2:
+                player1StoneType = StoneType.WHITE;
+                break;
+            default:
+                player1StoneType = StoneType.SPACE;
+        }
+        presetStoneNumber = inputStream.readInt();
+        try {
+            while (true) {
+                int i = inputStream.readInt();
+                int j = inputStream.readInt();
+                StoneType type = (history.size() % 2 == 0 ? StoneType.BLACK : StoneType.WHITE);
+                history.push(new Stone(i, j, type));
+                if (board[i][j] == StoneType.SPACE)
+                    board[i][j] = type;
+                else
+                    throw new StoneAlreadyPlacedException();
+            }
+        }
+        catch (IOException ignored) {
+        }
+        historySizeChangeSupport.setValue(history.size());
+    }
+    
+    
+    public void saveGame(File file) throws IOException {
+        DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(file));
+        outputStream.writeBoolean(gameStartedChangeSupport.getValue());
+        switch (player1StoneType) {
+            case BLACK:
+                outputStream.writeInt(1);
+                break;
+            case WHITE:
+                outputStream.writeInt(2);
+                break;
+            default:
+                outputStream.writeInt(0);
+        }
+        outputStream.writeInt(presetStoneNumber);
+        for (Stone stone : history) {
+            outputStream.writeInt(stone.getI());
+            outputStream.writeInt(stone.getJ());
+        }
+        outputStream.close();
+    }
+    
+    
     public boolean isGameStarted() {
-        return gameStarted;
+        return gameStartedChangeSupport.getValue();
     }
     
     
     public boolean isGameOver() {
-        return !gameStarted;
+        return !gameStartedChangeSupport.getValue();
     }
     
     
     public boolean isPlayerColorChosen() {
-        return playerColorChosen;
+        return (player1StoneType != StoneType.SPACE);
     }
     
     
     public void choosePlayer1Color(StoneType player1StoneType) {
-        assert (!playerColorChosen && player1StoneType != StoneType.SPACE);
-        playerColorChosen = true;
+        assert (!isPlayerColorChosen() && player1StoneType != StoneType.SPACE);
         this.player1StoneType = player1StoneType;
-        preSetStones = history.size();
+        presetStoneNumber = history.size();
     }
     
     
@@ -151,9 +221,7 @@ class Borad {
     }
     
     
-    public Stone getLastStone() throws GameNotStartedException, EmptyStackException {
-        if (!gameStarted)
-            throw new GameNotStartedException();
+    public Stone getLastStone() throws EmptyStackException {
         return history.peek();
     }
     
@@ -169,7 +237,7 @@ class Borad {
     
     
     public int getNextPlayerNumber() {
-        if (playerColorChosen)
+        if (isPlayerColorChosen())
             return (player1StoneType == getNextStoneType() ? 1 : 2);
         else
             return (history.size() < 3 ? 1 : 2);
@@ -177,63 +245,112 @@ class Borad {
     
     
     public void putStone(int i, int j) throws GameNotStartedException, OutOfBoardRangeException, StoneAlreadyPlacedException {
-        if (!gameStarted)
+        if (!isGameStarted())
             throw new GameNotStartedException();
         Stone lastStone = new Stone(i, j, getNextStoneType());
-        if (borad[i][j] != StoneType.SPACE)
+        if (board[i][j] != StoneType.SPACE)
             throw new StoneAlreadyPlacedException();
-        borad[i][j] = lastStone.getType();
+        board[i][j] = lastStone.getType();
         history.push(lastStone);
+        rowStonesUpdated = false;
+        if (history.size() == n * n)
+            gameStartedChangeSupport.setValue(false);
+        historySizeChangeSupport.setValue(history.size());
     }
     
     
     public Stone removeStone() throws GameNotStartedException, EmptyStackException {
-        if (!gameStarted)
+        if (!isGameStarted())
             throw new GameNotStartedException();
         if (!canRetractStone())
             throw new EmptyStackException();
         Stone lastStone = history.pop();
-        borad[lastStone.getI()][lastStone.getJ()] = StoneType.SPACE;
+        board[lastStone.getI()][lastStone.getJ()] = StoneType.SPACE;
+        rowStonesUpdated = false;
+        historySizeChangeSupport.setValue(history.size());
         return lastStone;
     }
     
     
     public boolean canRetractStone() {
-        return (history.size() > preSetStones);
+        if (isGameStarted())
+            return (history.size() > presetStoneNumber);
+        else
+            return false;
     }
     
     
-    public List<Integer> checkRowStone() throws EmptyStackException {
-        List<Integer> indexOfStones = new ArrayList<Integer>();
-        Stone lastStone = history.peek();
-        int i = lastStone.getI(), j = lastStone.getJ();
-        StoneType type = lastStone.getType();
-        List<Point> pointList = new ArrayList<Point>();
-        for (int direction = 0; direction < 4; ++direction) {
-            int forward = 0, backward = 0;
-            while (borad[i + (forward + 1) * dx[direction]][j + (forward + 1) * dy[direction]] == type)
-                ++forward;
-            while (borad[i + (backward - 1) * dx[direction]][j + (backward - 1) * dy[direction]] == type)
-                --backward;
-            if (forward - backward + 1 == 5) {
-                gameStarted = false;
-                for (int k = backward; k <= forward; ++k)
-                    pointList.add(new Point(i + k * dx[direction], j + k * dy[direction]));
+    public List<Integer> getIndexOfRowStones() {
+        if (!rowStonesUpdated) {
+            indexOfRowStones.clear();
+            try {
+                Stone lastStone = history.peek();
+                int i = lastStone.getI(), j = lastStone.getJ();
+                StoneType type = lastStone.getType();
+                List<Point> pointList = new ArrayList<Point>();
+                for (int direction = 0; direction < 4; ++direction) {
+                    int forward = 0, backward = 0;
+                    while (board[i + (forward + 1) * dx[direction]][j + (forward + 1) * dy[direction]] == type)
+                        ++forward;
+                    while (board[i + (backward - 1) * dx[direction]][j + (backward - 1) * dy[direction]] == type)
+                        --backward;
+                    if (forward - backward + 1 == 5) {
+                        gameStartedChangeSupport.setValue(false);
+                        for (int k = backward; k <= forward; ++k)
+                            pointList.add(new Point(i + k * dx[direction], j + k * dy[direction]));
+                    }
+                }
+                if (!pointList.isEmpty()) {
+                    
+                    for (Point point : pointList) {
+                        try {
+                            indexOfRowStones.add(history.indexOf(Stone.blackStone(point.x, point.y)));
+                        }
+                        catch (OutOfBoardRangeException ignored) {
+                        }
+                    }
+                }
+                else
+                    indexOfRowStones.add(history.size() - 1);
+            }
+            catch (EmptyStackException ignored) {
             }
         }
-        if (!pointList.isEmpty()) {
-            
-            for (Point point : pointList) {
-                try {
-                    indexOfStones.add(history.indexOf(Stone.blackStone(point.x, point.y)));
-                }
-                catch (OutOfBoardRangeException ignored) {
-                }
-            }
-        }
-        else
-            indexOfStones.add(history.size() - 1);
-        return indexOfStones;
+        rowStonesUpdated = true;
+        return indexOfRowStones;
+    }
+    
+    
+    public void addGameStartedChangeListener(PropertyChangeListener listener) {
+        gameStartedChangeSupport.addPropertyChangeListener(listener);
+    }
+    
+    
+    public void addHistorySizeChangeListener(PropertyChangeListener listener) {
+        historySizeChangeSupport.addPropertyChangeListener(listener);
+    }
+}
+
+
+class DataChangeSupport<E> extends PropertyChangeSupport {
+    private E value;
+    
+    
+    public DataChangeSupport(Object source, E value) {
+        super(source);
+        this.value = value;
+    }
+    
+    
+    public E getValue() {
+        return value;
+    }
+    
+    
+    public void setValue(E newValue) {
+        E oldValue = this.value;
+        this.value = newValue;
+        firePropertyChange("value", oldValue, newValue);
     }
 }
 

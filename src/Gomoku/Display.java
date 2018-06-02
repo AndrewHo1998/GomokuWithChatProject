@@ -6,18 +6,20 @@ package Gomoku;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EmptyStackException;
 import java.util.List;
 import java.util.Stack;
 
 class Display extends JPanel {
-    private final Borad borad;
     private final int cornerXL, cornerYU, cornerXR, cornerYD;
     private final int[] stoneCenterX;
     private final int[] stoneCenterY;
-    private List<Integer> indexOfHighlightedStones;
-    private JLabel messageLabel;
+    private final Board board;
+    private final JLabel messageLabel;
+    private final List<Integer> indexOfHighlightedStones;
+    
     public static final int sideLength = 40;
     public static final int starRadius = 5;
     public static final int stoneRadius = 18;
@@ -25,38 +27,38 @@ class Display extends JPanel {
     public static final Color black = new Color(32, 32, 32);
     public static final Color white = new Color(220, 220, 220);
     public static final Color gray = new Color(160, 160, 160);
-    public static final Font indexFont = new Font("TimesRoman", Font.BOLD, 3 * stoneRadius / 4);
+    public static final Font indexFont = new Font(Font.DIALOG, Font.PLAIN, 3 * stoneRadius / 4);
     
     
     public Display(int x, int y) {
         super();
-        borad = new Borad();
+        board = new Board();
         indexOfHighlightedStones = new ArrayList<Integer>();
         messageLabel = new JLabel("");
         cornerXL = x;
         cornerYU = y;
-        stoneCenterX = new int[Borad.n + 2];
-        stoneCenterY = new int[Borad.n + 2];
-        for (int i = 0; i <= Borad.n + 1; ++i) {
+        stoneCenterX = new int[Board.n + 2];
+        stoneCenterY = new int[Board.n + 2];
+        for (int i = 0; i <= Board.n + 1; ++i) {
             stoneCenterX[i] = cornerXL + sideLength * (i - 1);
             stoneCenterY[i] = cornerYU + sideLength * (i - 1);
         }
-        cornerXR = stoneCenterX[Borad.n];
-        cornerYD = stoneCenterY[Borad.n];
+        cornerXR = stoneCenterX[Board.n];
+        cornerYD = stoneCenterY[Board.n];
         
         messageLabel.setBounds(cornerXR + 7 * sideLength / 2, cornerYU, 5 * sideLength, sideLength);
-        messageLabel.setFont(new Font("TimesRoman", Font.BOLD, sideLength / 2));
+        messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
         add(messageLabel);
     }
     
     
-    public Borad getBorad() {
-        return borad;
+    public Board getBoard() {
+        return board;
     }
     
     
     public void newGame() {
-        borad.newGame();
+        board.newGame();
         indexOfHighlightedStones.clear();
         messageLabel.setText("");
         repaint();
@@ -65,67 +67,91 @@ class Display extends JPanel {
     
     
     public void reset() {
-        borad.reset();
+        board.reset();
         indexOfHighlightedStones.clear();
     }
     
     
-    public void gameOver() {
-        String message = "玩家 " + (3 - borad.getNextPlayerNumber()) + " 胜利";
+    public void loadGame(File file) throws IOException, BadInputStoneException {
+        board.loadGame(file);
+        paintStonesWithIndexFromHistory((Graphics2D) getGraphics());
+    }
+    
+    
+    public void saveGame(File file) throws IOException {
+        board.saveGame(file);
+    }
+    
+    
+    public void gameOver(int winnerNumber) {
+        String message;
+        if (winnerNumber == 1 || winnerNumber == 2)
+            message = "玩家 " + winnerNumber + " 胜利";
+        else
+            message = "平局";
         messageLabel.setText(message);
         JOptionPane.showMessageDialog(this, message, "游戏结束", JOptionPane.INFORMATION_MESSAGE);
         reset();
     }
     
     
+    public void admitDefeat() {
+        gameOver(3 - board.getNextPlayerNumber());
+    }
+    
+    
     public void choosePlayerColor() {
-        if (borad.getHistorySize() == 3) {
+        if (board.getHistorySize() == 3) {
             String message = "玩家 2 选择执子颜色";
             messageLabel.setText(message);
             String[] options = {"执黑", "执白", "继续"};
-            int n = JOptionPane.showOptionDialog(this,
-                                                 message,
-                                                 "",
-                                                 JOptionPane.YES_NO_CANCEL_OPTION,
-                                                 JOptionPane.QUESTION_MESSAGE,
-                                                 null,
-                                                 options,
-                                                 options[0]);
-            if (n == 0)
-                borad.choosePlayer1Color(StoneType.WHITE);
-            else if (n == 1)
-                borad.choosePlayer1Color(StoneType.BLACK);
+            int state = JOptionPane.showOptionDialog(this,
+                                                     message,
+                                                     "",
+                                                     JOptionPane.YES_NO_CANCEL_OPTION,
+                                                     JOptionPane.QUESTION_MESSAGE,
+                                                     null,
+                                                     options,
+                                                     options[0]);
+            if (state == JOptionPane.YES_OPTION)
+                board.choosePlayer1Color(StoneType.WHITE);
+            else if (state == JOptionPane.NO_OPTION)
+                board.choosePlayer1Color(StoneType.BLACK);
         }
-        else if (!borad.isPlayerColorChosen() && borad.getHistorySize() == 5) {
+        else if (!board.isPlayerColorChosen() && board.getHistorySize() == 5) {
             String message = "玩家 1 选择执子颜色";
             messageLabel.setText(message);
             String[] options = {"执黑", "执白"};
-            int n = JOptionPane.showOptionDialog(this,
-                                                 message,
-                                                 "",
-                                                 JOptionPane.OK_CANCEL_OPTION,
-                                                 JOptionPane.QUESTION_MESSAGE,
-                                                 null,
-                                                 options,
-                                                 options[0]);
-            if (n == 0)
-                borad.choosePlayer1Color(StoneType.BLACK);
+            int state = JOptionPane.showOptionDialog(this,
+                                                     message,
+                                                     "",
+                                                     JOptionPane.OK_CANCEL_OPTION,
+                                                     JOptionPane.QUESTION_MESSAGE,
+                                                     null,
+                                                     options,
+                                                     options[0]);
+            if (state == JOptionPane.YES_OPTION)
+                board.choosePlayer1Color(StoneType.BLACK);
             else
-                borad.choosePlayer1Color(StoneType.WHITE);
+                board.choosePlayer1Color(StoneType.WHITE);
         }
     }
     
     
     public void putStone(int i, int j) throws GameNotStartedException, OutOfBoardRangeException, StoneAlreadyPlacedException {
-        borad.putStone(i, j);
+        board.putStone(i, j);
         Graphics2D g2D = (Graphics2D) getGraphics();
-        paintStone(g2D, borad.getLastStone());
-        List<Integer> indexOfRowStones = borad.checkRowStone();
+        paintStone(g2D, board.getLastStone());
+        List<Integer> indexOfRowStones = board.getIndexOfRowStones();
         paintStoneIndexHighlight(g2D, indexOfRowStones);
-        if (!borad.isPlayerColorChosen())
+        if (!board.isPlayerColorChosen())
             choosePlayerColor();
-        if (borad.isGameOver())
-            gameOver();
+        if (board.isGameOver()) {
+            if (indexOfRowStones.size() >= 5)
+                gameOver(3 - board.getNextPlayerNumber());
+            else
+                gameOver(0);
+        }
         else
             paintPlayer(g2D);
     }
@@ -133,13 +159,13 @@ class Display extends JPanel {
     
     public void removeStone() {
         try {
-            Stone lastStone = borad.removeStone();
+            Stone lastStone = board.removeStone();
             Graphics2D g2D = (Graphics2D) getGraphics();
             eraseStone(g2D, lastStone.getI(), lastStone.getJ());
-            paintStoneIndexHighlight(g2D, borad.checkRowStone());
+            paintStoneIndexHighlight(g2D, board.getIndexOfRowStones());
             paintPlayer(g2D);
         }
-        catch (GameNotStartedException | EmptyStackException ignored) {
+        catch (GameNotStartedException ignored) {
         }
     }
     
@@ -157,22 +183,22 @@ class Display extends JPanel {
         super.paint(g);
         Graphics2D g2D = (Graphics2D) g;
         paintBoard(g2D);
-        if (borad.isGameStarted())
+        if (board.isGameStarted())
             paintNextStoneColor(g2D);
     }
     
     
     private void paintBoard(Graphics2D g2D) {
         g2D.setColor(backgroundColor);
-        g2D.fillRect(stoneCenterX[0], stoneCenterY[0], sideLength * (Borad.n + 1), sideLength * (Borad.n + 1));
+        g2D.fillRect(stoneCenterX[0], stoneCenterY[0], sideLength * (Board.n + 1), sideLength * (Board.n + 1));
         g2D.setColor(Color.BLACK);
         g2D.setStroke(new BasicStroke(5.0f));
-        g2D.drawLine(stoneCenterX[0], stoneCenterY[0], stoneCenterX[Borad.n + 1], stoneCenterY[0]);
-        g2D.drawLine(stoneCenterX[0], stoneCenterY[Borad.n + 1], stoneCenterX[Borad.n + 1], stoneCenterY[Borad.n + 1]);
-        g2D.drawLine(stoneCenterX[0], stoneCenterY[0], stoneCenterX[0], stoneCenterY[Borad.n + 1]);
-        g2D.drawLine(stoneCenterX[Borad.n + 1], stoneCenterY[0], stoneCenterX[Borad.n + 1], stoneCenterY[Borad.n + 1]);
+        g2D.drawLine(stoneCenterX[0], stoneCenterY[0], stoneCenterX[Board.n + 1], stoneCenterY[0]);
+        g2D.drawLine(stoneCenterX[0], stoneCenterY[Board.n + 1], stoneCenterX[Board.n + 1], stoneCenterY[Board.n + 1]);
+        g2D.drawLine(stoneCenterX[0], stoneCenterY[0], stoneCenterX[0], stoneCenterY[Board.n + 1]);
+        g2D.drawLine(stoneCenterX[Board.n + 1], stoneCenterY[0], stoneCenterX[Board.n + 1], stoneCenterY[Board.n + 1]);
         g2D.setStroke(new BasicStroke(2.0f));
-        for (int i = 1; i <= Borad.n; ++i) {
+        for (int i = 1; i <= Board.n; ++i) {
             g2D.drawLine(stoneCenterX[i], cornerYU, stoneCenterX[i], cornerYD);
             g2D.drawLine(cornerXL, stoneCenterY[i], cornerXR, stoneCenterY[i]);
         }
@@ -194,11 +220,11 @@ class Display extends JPanel {
             g2D.setStroke(new BasicStroke(2.0f));
             if (i > 1)
                 g2D.drawLine(centerX - sideLength / 2, centerY, centerX, centerY);
-            if (i < Borad.n)
+            if (i < Board.n)
                 g2D.drawLine(centerX, centerY, centerX + sideLength / 2, centerY);
             if (j > 1)
                 g2D.drawLine(centerX, centerY - sideLength / 2, centerX, centerY);
-            if (j < Borad.n)
+            if (j < Board.n)
                 g2D.drawLine(centerX, centerY, centerX, centerY + sideLength / 2);
             
             if (isStar(i, j))
@@ -231,6 +257,7 @@ class Display extends JPanel {
     
     
     private void paintStoneIndex(Graphics2D g2D, Stone stone, int index, boolean highlight) {
+        g2D.setFont(indexFont);
         if (highlight)
             paintStoneIndex(g2D, stone, index, Color.RED);
         else
@@ -249,7 +276,7 @@ class Display extends JPanel {
     private void eraseStoneIndexHighlight(Graphics2D g2D) {
         indexOfHighlightedStones.forEach(index -> {
             try {
-                paintStoneIndex(g2D, borad.getStoneFromIndex(index), index, false);
+                paintStoneIndex(g2D, board.getStoneFromIndex(index), index, false);
             }
             catch (ArrayIndexOutOfBoundsException ignored) {
             }
@@ -262,7 +289,7 @@ class Display extends JPanel {
         eraseStoneIndexHighlight(g2D);
         indexOfStones.forEach(index -> {
             try {
-                paintStoneIndex(g2D, borad.getStoneFromIndex(index), index, true);
+                paintStoneIndex(g2D, board.getStoneFromIndex(index), index, true);
             }
             catch (ArrayIndexOutOfBoundsException ignored) {
             }
@@ -272,21 +299,18 @@ class Display extends JPanel {
     
     
     private void paintStonesWithIndexFromHistory(Graphics2D g2D) {
-        if (borad.hasNoHistory())
+        paintBoard(g2D);
+        if (board.hasNoHistory())
             return;
         indexOfHighlightedStones.clear();
-        g2D.setFont(indexFont);
-        Stack<Stone> history = borad.getHistory();
+        Stack<Stone> history = board.getHistory();
         int i = 0;
         for (Stone stone : history) {
-            paintStoneWithIndex(g2D, stone, i, (i < history.size()));
+            paintStoneWithIndex(g2D, stone, i, false);
             ++i;
         }
-        try {
-            paintStoneIndexHighlight(g2D, borad.checkRowStone());
-        }
-        catch (EmptyStackException ignored) {
-        }
+        paintStoneIndexHighlight(g2D, board.getIndexOfRowStones());
+        paintPlayer(g2D);
     }
     
     
@@ -294,7 +318,7 @@ class Display extends JPanel {
         g2D.setStroke(new BasicStroke(1.0f));
         g2D.setColor(gray);
         g2D.drawOval(cornerXR + 5 * sideLength / 2 - stoneRadius, cornerYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
-        g2D.setColor(typeToColor(borad.getNextStoneType()));
+        g2D.setColor(typeToColor(board.getNextStoneType()));
         g2D.fillOval(cornerXR + 5 * sideLength / 2 - stoneRadius, cornerYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
     }
     
@@ -306,7 +330,7 @@ class Display extends JPanel {
     
     
     private void paintPlayer(Graphics2D g2D) {
-        paintMessage(g2D, "玩家 " + borad.getNextPlayerNumber() + (borad.getNextStoneType() == StoneType.BLACK ? " 执黑" : " 执白"));
+        paintMessage(g2D, "玩家 " + board.getNextPlayerNumber() + (board.getNextStoneType() == StoneType.BLACK ? " 执黑" : " 执白"));
     }
     
     
@@ -320,7 +344,7 @@ class Display extends JPanel {
     }
     
     
-    private static void drawCenteredString(Graphics2D g2D, String text, int x, int y) {
+    private void drawCenteredString(Graphics2D g2D, String text, int x, int y) {
         FontMetrics metrics = g2D.getFontMetrics();
         x -= metrics.stringWidth(text) / 2;
         y -= metrics.getHeight() / 2 - metrics.getAscent();
@@ -358,14 +382,14 @@ class Display extends JPanel {
     
     
     public int iToX(int i) throws OutOfBoardRangeException {
-        if (i < 0 || i > Borad.n + 1)
+        if (i < 0 || i > Board.n + 1)
             throw new OutOfBoardRangeException();
         return stoneCenterX[i];
     }
     
     
     public int jToY(int j) throws OutOfBoardRangeException {
-        if (j < 0 || j > Borad.n + 1)
+        if (j < 0 || j > Board.n + 1)
             throw new OutOfBoardRangeException();
         return stoneCenterY[j];
     }
