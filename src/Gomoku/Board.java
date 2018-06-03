@@ -29,7 +29,7 @@ class Stone {
     
     
     Stone(int i, int j, StoneType type) throws OutOfBoardRangeException {
-        if (i < 1 || i > Board.n || j < 1 || j > Board.n)
+        if (i < 1 || i > GomokuBoard.n || j < 1 || j > GomokuBoard.n)
             throw new OutOfBoardRangeException();
         this.point = new Point(i, j);
         this.type = type;
@@ -79,7 +79,7 @@ class Stone {
 }
 
 
-class Board {
+class GomokuBoard {
     private final DataChangeSupport<Boolean> gameStartedChangeSupport;
     private final DataChangeSupport<Integer> historySizeChangeSupport;
     private final List<Integer> indexOfRowStones;
@@ -94,7 +94,7 @@ class Board {
     private static final int[] dy = {0, 1, 1, 1};
     
     
-    public Board() {
+    public GomokuBoard() {
         history = new Stack<Stone>();
         board = new StoneType[n + 2][n + 2];
         gameStartedChangeSupport = new DataChangeSupport<Boolean>(this, false);
@@ -332,23 +332,27 @@ class Board {
 }
 
 
-class DataChangeSupport<E> extends PropertyChangeSupport {
-    private E value;
+interface AbstractBoard {
+}
+
+
+class DataChangeSupport<T> extends PropertyChangeSupport {
+    private T value;
     
     
-    public DataChangeSupport(Object source, E value) {
+    public DataChangeSupport(Object source, T value) {
         super(source);
         this.value = value;
     }
     
     
-    public E getValue() {
+    public T getValue() {
         return value;
     }
     
     
-    public void setValue(E newValue) {
-        E oldValue = this.value;
+    public void setValue(T newValue) {
+        T oldValue = this.value;
         this.value = newValue;
         firePropertyChange("value", oldValue, newValue);
     }
