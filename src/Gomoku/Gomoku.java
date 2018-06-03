@@ -12,6 +12,13 @@ import java.io.File;
 import java.io.IOException;
 
 public class Gomoku extends JFrame {
+    private final Board board;
+    private final Display display;
+    private final JButton retractButton;
+    private final JButton newGameButton;
+    private final JButton loadOrSaveGameButton;
+    private final JButton showRuleButton;
+    
     public static final String swap2Rule = "一. 假先方在棋盘任意下三手（二黑一白），假后方有三种选择：\n" +
                                            "     1. 选黑。\n" +
                                            "     2. 选白。\n" +
@@ -19,40 +26,33 @@ public class Gomoku extends JFrame {
                                            "二. 黑白双方轮流落子。\n" +
                                            "三. 首选在横、竖、斜方向上成五（连续五个己方棋子）者为胜。\n" +
                                            "四. 超过五子以上不算赢也不算输。";
-    private final Board board;
-    private final Display display;
-    private final JButton retract;
-    private final JButton newGame;
-    private final JButton loadOrSaveGame;
-    private final JButton showRule;
     
     
     public Gomoku() {
         super("五子棋");
-        display = new Display(60, 60);
+        board = new Board();
+        display = new Display(60, 60, board);
         setContentPane(display);
-    
-        board = display.getBoard();
         
-        newGame = new JButton("新游戏");
-        loadOrSaveGame = new JButton("载入游戏");
-        retract = new JButton("悔棋");
-        showRule = new JButton("游戏规则");
-        retract.setEnabled(false);
-    
+        newGameButton = new JButton("新游戏");
+        loadOrSaveGameButton = new JButton("载入游戏");
+        retractButton = new JButton("悔棋");
+        showRuleButton = new JButton("游戏规则");
+        retractButton.setEnabled(false);
+        
         Font font = new Font(Font.DIALOG, Font.PLAIN, Display.sideLength);
-        newGame.setFont(font);
-        loadOrSaveGame.setFont(font);
-        retract.setFont(font);
-        showRule.setFont(font);
+        newGameButton.setFont(font);
+        loadOrSaveGameButton.setFont(font);
+        retractButton.setFont(font);
+        showRuleButton.setFont(font);
         
-        newGame.addActionListener(e -> {
+        newGameButton.addActionListener(e -> {
             if (!board.isGameStarted())
                 display.newGame();
             else
                 display.admitDefeat();
         });
-        loadOrSaveGame.addActionListener(e -> {
+        loadOrSaveGameButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setCurrentDirectory(new File("."));
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -82,39 +82,39 @@ public class Gomoku extends JFrame {
                 }
             }
         });
-        retract.addActionListener(e -> display.removeStone());
-        showRule.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
+        retractButton.addActionListener(e -> display.removeStone());
+        showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
         board.addGameStartedChangeListener(evt -> {
             if ((Boolean) evt.getNewValue()) {
-                newGame.setText("认输");
-                loadOrSaveGame.setText("保存游戏");
+                newGameButton.setText("认输");
+                loadOrSaveGameButton.setText("保存游戏");
             }
             else {
-                newGame.setText("新游戏");
-                loadOrSaveGame.setText("载入游戏");
+                newGameButton.setText("新游戏");
+                loadOrSaveGameButton.setText("载入游戏");
             }
-            retract.setEnabled(board.canRetractStone());
+            retractButton.setEnabled(board.canRetractStone());
         });
-        board.addHistorySizeChangeListener(evt -> {
-            retract.setEnabled(board.canRetractStone());
-        });
+        board.addHistorySizeChangeListener(evt -> retractButton.setEnabled(board.canRetractStone()));
         
         display.setLayout(null);
         setSize(960, 700);
-        newGame.setBounds(display.getCornerXR() + 2 * Display.sideLength, display.getCornerYU() + 3 * Display.sideLength, 220, 2 * Display.sideLength);
-        loadOrSaveGame.setBounds(display.getCornerXR() + 2 * Display.sideLength, display.getCornerYU() + 6 * Display.sideLength, 220, 2 * Display.sideLength);
-        retract.setBounds(display.getCornerXR() + 2 * Display.sideLength, display.getCornerYU() + 9 * Display.sideLength, 220, 2 * Display.sideLength);
-        showRule.setBounds(display.getCornerXR() + 2 * Display.sideLength, display.getCornerYU() + 12 * Display.sideLength, 220, 2 * Display.sideLength);
-        display.add(newGame);
-        display.add(loadOrSaveGame);
-        display.add(retract);
-        display.add(showRule);
+        newGameButton.setBounds(display.getBoundXR() + 2 * Display.sideLength, display.getBoundYU() + 3 * Display.sideLength, 220, 2 * Display.sideLength);
+        loadOrSaveGameButton.setBounds(display.getBoundXR() + 2 * Display.sideLength, display.getBoundYU() + 6 * Display.sideLength, 220, 2 * Display.sideLength);
+        retractButton.setBounds(display.getBoundXR() + 2 * Display.sideLength, display.getBoundYU() + 9 * Display.sideLength, 220, 2 * Display.sideLength);
+        showRuleButton.setBounds(display.getBoundXR() + 2 * Display.sideLength, display.getBoundYU() + 12 * Display.sideLength, 220, 2 * Display.sideLength);
+        display.add(newGameButton);
+        display.add(loadOrSaveGameButton);
+        display.add(retractButton);
+        display.add(showRuleButton);
         
         display.addMouseListener(new MouseListener() {
+            @Override
             public void mouseClicked(MouseEvent e) {
             }
             
             
+            @Override
             public void mousePressed(MouseEvent e) {
                 try {
                     display.putStoneFromMouse(e.getX(), e.getY());
@@ -124,14 +124,17 @@ public class Gomoku extends JFrame {
             }
             
             
+            @Override
             public void mouseReleased(MouseEvent e) {
             }
             
             
+            @Override
             public void mouseEntered(MouseEvent e) {
             }
             
             
+            @Override
             public void mouseExited(MouseEvent e) {
             }
         });

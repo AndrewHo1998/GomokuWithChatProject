@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Stack;
 
 class Display extends JPanel {
-    private final int cornerXL, cornerYU, cornerXR, cornerYD;
+    private final int boundXL, boundXR, boundYU, boundYD;
     private final int[] stoneCenterX;
     private final int[] stoneCenterY;
     private final Board board;
@@ -23,46 +23,41 @@ class Display extends JPanel {
     public static final int sideLength = 40;
     public static final int starRadius = 5;
     public static final int stoneRadius = 18;
-    public static final Color backgroundColor = new Color(244, 240, 220);
-    public static final Color black = new Color(32, 32, 32);
-    public static final Color white = new Color(220, 220, 220);
-    public static final Color gray = new Color(160, 160, 160);
-    public static final Font indexFont = new Font(Font.DIALOG, Font.PLAIN, 3 * stoneRadius / 4);
+    private static final Color backgroundColor = new Color(244, 240, 220);
+    private static final Color black = new Color(32, 32, 32);
+    private static final Color white = new Color(220, 220, 220);
+    private static final Color gray = new Color(160, 160, 160);
+    private static final Font indexFont = new Font(Font.DIALOG, Font.PLAIN, 3 * stoneRadius / 4);
     
     
-    public Display(int x, int y) {
+    public Display(int x, int y, Board board) {
         super();
-        board = new Board();
+        this.board = board;
         indexOfHighlightedStones = new ArrayList<Integer>();
         messageLabel = new JLabel("");
-        cornerXL = x;
-        cornerYU = y;
+        boundXL = x;
+        boundYU = y;
         stoneCenterX = new int[Board.n + 2];
         stoneCenterY = new int[Board.n + 2];
         for (int i = 0; i <= Board.n + 1; ++i) {
-            stoneCenterX[i] = cornerXL + sideLength * (i - 1);
-            stoneCenterY[i] = cornerYU + sideLength * (i - 1);
+            stoneCenterX[i] = boundXL + sideLength * (i - 1);
+            stoneCenterY[i] = boundYU + sideLength * (i - 1);
         }
-        cornerXR = stoneCenterX[Board.n];
-        cornerYD = stoneCenterY[Board.n];
+        boundXR = stoneCenterX[Board.n];
+        boundYD = stoneCenterY[Board.n];
         
-        messageLabel.setBounds(cornerXR + 7 * sideLength / 2, cornerYU, 5 * sideLength, sideLength);
+        messageLabel.setBounds(boundXR + 7 * sideLength / 2, boundYU, 5 * sideLength, sideLength);
         messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
         add(messageLabel);
-    }
-    
-    
-    public Board getBoard() {
-        return board;
     }
     
     
     public void newGame() {
         board.newGame();
         indexOfHighlightedStones.clear();
-        messageLabel.setText("");
-        repaint();
-        paintPlayer((Graphics2D) getGraphics());
+        Graphics2D g2D = (Graphics2D) getGraphics();
+        paintBoard(g2D);
+        paintPlayer(g2D);
     }
     
     
@@ -138,7 +133,7 @@ class Display extends JPanel {
     }
     
     
-    public void putStone(int i, int j) throws GameNotStartedException, OutOfBoardRangeException, StoneAlreadyPlacedException {
+    public void putStone(int i, int j) throws GameNotStartedException, StoneOutOfBoardRangeException, StoneAlreadyPlacedException {
         board.putStone(i, j);
         Graphics2D g2D = (Graphics2D) getGraphics();
         paintStone(g2D, board.getLastStone());
@@ -170,9 +165,9 @@ class Display extends JPanel {
     }
     
     
-    public void putStoneFromMouse(int x, int y) throws GameNotStartedException, OutOfBoardRangeException, StoneAlreadyPlacedException {
-        int i = xToI(x), j = yToJ(y);
-        int xGrid = iToX(i), yGrid = jToY(j);
+    public void putStoneFromMouse(int x, int y) throws GameNotStartedException, StoneOutOfBoardRangeException, StoneAlreadyPlacedException {
+        int i = getIFromX(x), j = getJFromY(y);
+        int xGrid = getXFromI(i), yGrid = getYFromJ(j);
         if ((x - xGrid) * (x - xGrid) + (y - yGrid) * (y - yGrid) < stoneRadius * stoneRadius)
             putStone(i, j);
     }
@@ -181,10 +176,7 @@ class Display extends JPanel {
     @Override
     public void paint(Graphics g) {
         super.paint(g);
-        Graphics2D g2D = (Graphics2D) g;
-        paintBoard(g2D);
-        if (board.isGameStarted())
-            paintNextStoneColor(g2D);
+        paintBoard((Graphics2D) g);
     }
     
     
@@ -199,8 +191,8 @@ class Display extends JPanel {
         g2D.drawLine(stoneCenterX[Board.n + 1], stoneCenterY[0], stoneCenterX[Board.n + 1], stoneCenterY[Board.n + 1]);
         g2D.setStroke(new BasicStroke(2.0f));
         for (int i = 1; i <= Board.n; ++i) {
-            g2D.drawLine(stoneCenterX[i], cornerYU, stoneCenterX[i], cornerYD);
-            g2D.drawLine(cornerXL, stoneCenterY[i], cornerXR, stoneCenterY[i]);
+            g2D.drawLine(stoneCenterX[i], boundYU, stoneCenterX[i], boundYD);
+            g2D.drawLine(boundXL, stoneCenterY[i], boundXR, stoneCenterY[i]);
         }
         fillCircle(g2D, 8, 8, starRadius);
         fillCircle(g2D, 4, 4, starRadius);
@@ -212,8 +204,8 @@ class Display extends JPanel {
     
     private void eraseStone(Graphics2D g2D, int i, int j) {
         try {
-            int centerX = iToX(i);
-            int centerY = jToY(j);
+            int centerX = getXFromI(i);
+            int centerY = getYFromJ(j);
             g2D.setColor(backgroundColor);
             g2D.fillRect(centerX - sideLength / 2, centerY - sideLength / 2, sideLength, sideLength);
             g2D.setColor(Color.BLACK);
@@ -230,7 +222,7 @@ class Display extends JPanel {
             if (isStar(i, j))
                 fillCircle(g2D, i, j, starRadius);
         }
-        catch (OutOfBoardRangeException ignored) {
+        catch (StoneOutOfBoardRangeException ignored) {
         }
     }
     
@@ -240,7 +232,7 @@ class Display extends JPanel {
             g2D.setStroke(new BasicStroke(1.0f));
             g2D.setColor(gray);
             drawCircle(g2D, stone.getI(), stone.getJ(), stoneRadius);
-            g2D.setColor(typeToColor(stone.getType()));
+            g2D.setColor(getColorFromType(stone.getType()));
             fillCircle(g2D, stone.getI(), stone.getJ(), stoneRadius);
         }
     }
@@ -249,9 +241,9 @@ class Display extends JPanel {
     private void paintStoneIndex(Graphics2D g2D, Stone stone, int index, Color color) {
         g2D.setColor(color);
         try {
-            drawCenteredString(g2D, Integer.toString(index + 1), iToX(stone.getI()), jToY(stone.getJ()));
+            drawCenteredString(g2D, Integer.toString(index + 1), getXFromI(stone.getI()), getYFromJ(stone.getJ()));
         }
-        catch (OutOfBoardRangeException ignored) {
+        catch (StoneOutOfBoardRangeException ignored) {
         }
     }
     
@@ -261,7 +253,7 @@ class Display extends JPanel {
         if (highlight)
             paintStoneIndex(g2D, stone, index, Color.RED);
         else
-            paintStoneIndex(g2D, stone, index, typeToOppositeColor(stone.getType()));
+            paintStoneIndex(g2D, stone, index, getOppositeColorFromType(stone.getType()));
     }
     
     
@@ -317,9 +309,9 @@ class Display extends JPanel {
     private void paintNextStoneColor(Graphics2D g2D) {
         g2D.setStroke(new BasicStroke(1.0f));
         g2D.setColor(gray);
-        g2D.drawOval(cornerXR + 5 * sideLength / 2 - stoneRadius, cornerYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
-        g2D.setColor(typeToColor(board.getNextStoneType()));
-        g2D.fillOval(cornerXR + 5 * sideLength / 2 - stoneRadius, cornerYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
+        g2D.drawOval(boundXR + 5 * sideLength / 2 - stoneRadius, boundYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
+        g2D.setColor(getColorFromType(board.getNextStoneType()));
+        g2D.fillOval(boundXR + 5 * sideLength / 2 - stoneRadius, boundYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
     }
     
     
@@ -361,56 +353,61 @@ class Display extends JPanel {
     }
     
     
-    public int getCornerXL() {
-        return cornerXL;
+    public int getBoundXL() {
+        return boundXL;
     }
     
     
-    public int getCornerXR() {
-        return cornerXR;
+    public int getBoundXR() {
+        return boundXR;
     }
     
     
-    public int getCornerYU() {
-        return cornerYU;
+    public int getBoundYU() {
+        return boundYU;
     }
     
     
-    public int getCornerYD() {
-        return cornerYD;
+    public int getBoundYD() {
+        return boundYD;
     }
     
     
-    public int iToX(int i) throws OutOfBoardRangeException {
+    /**
+     * @param i 棋盘格点横坐标
+     *
+     * @return 棋盘格点在面板上的横坐标
+     */
+    public int getXFromI(int i) throws StoneOutOfBoardRangeException {
         if (i < 0 || i > Board.n + 1)
-            throw new OutOfBoardRangeException();
+            throw new StoneOutOfBoardRangeException();
         return stoneCenterX[i];
     }
     
     
-    public int jToY(int j) throws OutOfBoardRangeException {
+    public int getYFromJ(int j) throws StoneOutOfBoardRangeException {
         if (j < 0 || j > Board.n + 1)
-            throw new OutOfBoardRangeException();
+            throw new StoneOutOfBoardRangeException();
         return stoneCenterY[j];
     }
     
     
-    public int xToI(int x) {
-        return Math.round(((float) (x - cornerXL)) / sideLength) + 1;
+    public int getIFromX(int x) {
+        return Math.round(((float) (x - boundXL)) / sideLength) + 1;
     }
     
     
-    public int yToJ(int y) {
-        return Math.round(((float) (y - cornerYU)) / sideLength) + 1;
+    public int getJFromY(int y) {
+        return Math.round(((float) (y - boundYU)) / sideLength) + 1;
     }
     
     
-    public static Color typeToColor(StoneType type) {
+    public static Color getColorFromType(StoneType type) {
         return (type == StoneType.BLACK ? black : white);
     }
     
     
-    public static Color typeToOppositeColor(StoneType type) {
+    public static Color getOppositeColorFromType(StoneType type) {
         return (type != StoneType.BLACK ? black : white);
     }
 }
