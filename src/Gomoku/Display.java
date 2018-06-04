@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Stack;
 
 class Display extends JPanel {
-    private final int boundXL, boundXR, boundYU, boundYD;
+    private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
     private final int[] stoneCenterX;
     private final int[] stoneCenterY;
     private final Board board;
@@ -35,18 +35,20 @@ class Display extends JPanel {
         this.board = board;
         indexOfHighlightedStones = new ArrayList<Integer>();
         messageLabel = new JLabel("");
-        boundXL = x;
-        boundYU = y;
+        boardBoundXL = x;
+        boardBoundYU = y;
         stoneCenterX = new int[Board.n + 2];
         stoneCenterY = new int[Board.n + 2];
         for (int i = 0; i <= Board.n + 1; ++i) {
-            stoneCenterX[i] = boundXL + sideLength * (i - 1);
-            stoneCenterY[i] = boundYU + sideLength * (i - 1);
+            stoneCenterX[i] = boardBoundXL + sideLength * (i - 1);
+            stoneCenterY[i] = boardBoundYU + sideLength * (i - 1);
         }
-        boundXR = stoneCenterX[Board.n];
-        boundYD = stoneCenterY[Board.n];
+        boardBoundXR = stoneCenterX[Board.n];
+        boardBoundYD = stoneCenterY[Board.n];
+        boardCenterX = stoneCenterX[8];
+        boardCenterY = stoneCenterY[8];
         
-        messageLabel.setBounds(boundXR + 7 * sideLength / 2, boundYU, 5 * sideLength, sideLength);
+        messageLabel.setBounds(boardBoundXR + 7 * sideLength / 2, boardBoundYU, 7 * sideLength, sideLength);
         messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
         add(messageLabel);
     }
@@ -79,6 +81,7 @@ class Display extends JPanel {
     
     
     public void gameOver(int winnerNumber) {
+        reset();
         String message;
         if (winnerNumber == 1 || winnerNumber == 2)
             message = "玩家 " + winnerNumber + " 胜利";
@@ -86,7 +89,6 @@ class Display extends JPanel {
             message = "平局";
         messageLabel.setText(message);
         JOptionPane.showMessageDialog(this, message, "游戏结束", JOptionPane.INFORMATION_MESSAGE);
-        reset();
     }
     
     
@@ -191,8 +193,8 @@ class Display extends JPanel {
         g2D.drawLine(stoneCenterX[Board.n + 1], stoneCenterY[0], stoneCenterX[Board.n + 1], stoneCenterY[Board.n + 1]);
         g2D.setStroke(new BasicStroke(2.0f));
         for (int i = 1; i <= Board.n; ++i) {
-            g2D.drawLine(stoneCenterX[i], boundYU, stoneCenterX[i], boundYD);
-            g2D.drawLine(boundXL, stoneCenterY[i], boundXR, stoneCenterY[i]);
+            g2D.drawLine(stoneCenterX[i], boardBoundYU, stoneCenterX[i], boardBoundYD);
+            g2D.drawLine(boardBoundXL, stoneCenterY[i], boardBoundXR, stoneCenterY[i]);
         }
         fillCircle(g2D, 8, 8, starRadius);
         fillCircle(g2D, 4, 4, starRadius);
@@ -309,9 +311,9 @@ class Display extends JPanel {
     private void paintNextStoneColor(Graphics2D g2D) {
         g2D.setStroke(new BasicStroke(1.0f));
         g2D.setColor(gray);
-        g2D.drawOval(boundXR + 5 * sideLength / 2 - stoneRadius, boundYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
+        g2D.drawOval(boardBoundXR + 5 * sideLength / 2 - stoneRadius, boardBoundYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
         g2D.setColor(getColorFromType(board.getNextStoneType()));
-        g2D.fillOval(boundXR + 5 * sideLength / 2 - stoneRadius, boundYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
+        g2D.fillOval(boardBoundXR + 5 * sideLength / 2 - stoneRadius, boardBoundYU + sideLength / 2 - stoneRadius, 2 * stoneRadius, 2 * stoneRadius);
     }
     
     
@@ -353,31 +355,36 @@ class Display extends JPanel {
     }
     
     
-    public int getBoundXL() {
-        return boundXL;
+    public int getBoardBoundXL() {
+        return boardBoundXL;
     }
     
     
-    public int getBoundXR() {
-        return boundXR;
+    public int getBoardBoundXR() {
+        return boardBoundXR;
     }
     
     
-    public int getBoundYU() {
-        return boundYU;
+    public int getBoardBoundYU() {
+        return boardBoundYU;
     }
     
     
-    public int getBoundYD() {
-        return boundYD;
+    public int getBoardBoundYD() {
+        return boardBoundYD;
     }
     
     
-    /**
-     * @param i 棋盘格点横坐标
-     *
-     * @return 棋盘格点在面板上的横坐标
-     */
+    public int getBoardCenterX() {
+        return boardCenterX;
+    }
+    
+    
+    public int getBoardCenterY() {
+        return boardCenterY;
+    }
+    
+    
     public int getXFromI(int i) throws StoneOutOfBoardRangeException {
         if (i < 0 || i > Board.n + 1)
             throw new StoneOutOfBoardRangeException();
@@ -393,12 +400,12 @@ class Display extends JPanel {
     
     
     public int getIFromX(int x) {
-        return Math.round(((float) (x - boundXL)) / sideLength) + 1;
+        return Math.round(((float) (x - boardBoundXL)) / sideLength) + 1;
     }
     
     
     public int getJFromY(int y) {
-        return Math.round(((float) (y - boundYU)) / sideLength) + 1;
+        return Math.round(((float) (y - boardBoundYU)) / sideLength) + 1;
     }
     
     
