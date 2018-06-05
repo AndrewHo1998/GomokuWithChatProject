@@ -7,12 +7,6 @@ package Gomoku;
 import java.awt.Point;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.io.IOException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.List;
@@ -125,68 +119,6 @@ class Board {
             for (int j = 0; j < n + 2; ++j)
                 board[i][j] = StoneType.SPACE;
         }
-    }
-    
-    
-    public void loadGame(File file) throws IOException, BadInputStoneException {
-        reset();
-        try {
-            DataInputStream inputStream = new DataInputStream(new FileInputStream(file));
-            gameStartedChangeSupport.setValue(inputStream.readBoolean());
-            int c = inputStream.readInt();
-            switch (c) {
-                case 1:
-                    player1StoneType = StoneType.BLACK;
-                    break;
-                case 2:
-                    player1StoneType = StoneType.WHITE;
-                    break;
-                default:
-                    player1StoneType = StoneType.SPACE;
-            }
-            presetStoneNumber = inputStream.readInt();
-            try {
-                while (true) {
-                    int i = inputStream.readInt();
-                    int j = inputStream.readInt();
-                    StoneType type = (history.size() % 2 == 0 ? StoneType.BLACK : StoneType.WHITE);
-                    history.push(new Stone(i, j, type));
-                    if (board[i][j] == StoneType.SPACE)
-                        board[i][j] = type;
-                    else
-                        throw new StoneAlreadyPlacedException();
-                }
-            }
-            catch (IOException ignored) {
-            }
-            historySizeChangeSupport.setValue(history.size());
-        }
-        catch (BadInputStoneException e) {
-            reset();
-            throw e;
-        }
-    }
-    
-    
-    public void saveGame(File file) throws IOException {
-        DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(file));
-        outputStream.writeBoolean(gameStartedChangeSupport.getValue());
-        switch (player1StoneType) {
-            case BLACK:
-                outputStream.writeInt(1);
-                break;
-            case WHITE:
-                outputStream.writeInt(2);
-                break;
-            default:
-                outputStream.writeInt(0);
-        }
-        outputStream.writeInt(presetStoneNumber);
-        for (Stone stone : history) {
-            outputStream.writeInt(stone.getI());
-            outputStream.writeInt(stone.getJ());
-        }
-        outputStream.close();
     }
     
     
@@ -341,9 +273,9 @@ class DataChangeSupport<T> extends PropertyChangeSupport {
     private T value;
     
     
-    public DataChangeSupport(Object source, T value) {
+    public DataChangeSupport(Object source, T initialValue) {
         super(source);
-        this.value = value;
+        value = initialValue;
     }
     
     
