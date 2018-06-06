@@ -37,7 +37,7 @@ public class Server extends AbstractSocket {
         if (waitingForResponse) {
             // TODO 错误处理
             if ((waitingForResponseClientId == 1 && source == client1) || (waitingForResponseClientId == 2 && source == client2)) {
-                waitingForResponse = false;
+                waitingForResponse = false; // 不再等待 client 回应
                 waitingForResponseClientId = 0;
             }
         }
@@ -65,8 +65,10 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleRequireToNewGame(String message) {
+        // TODO 从 message 解析 clientId
+        int clientId = 1;
         waitingForResponse = true; // 等待对方 client 回应
-        waitingForResponseClientId = 1; // TODO 设为对方 clientId
+        waitingForResponseClientId = 3 - clientId; // 对方的 clientId
         // TODO 直接转发对方 client（报文头可能需要稍作修改）
     }
     
@@ -79,8 +81,14 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleAcceptToNewGame(String message) {
         // 接收函数已保证从正确的 client 接收消息
+        // TODO 从 message 解析 clientId
+        int clientId = 1;
         board.newGame();
-        player1ClientId = 1; // TODO 请求新建游戏的玩家的编号为 1，同意新建游戏的玩家的编号为 2（就是本函数 message 的来源）。
+        player1ClientId = 3 - clientId; // 请求新建游戏的玩家的编号为 1，同意新建游戏的玩家的编号为 2（就是本函数 message 的来源）。
+        /**
+         * message
+         * @arg playerNumber
+         */
         // TODO 向双方 client 发送新建游戏命令
     }
     
@@ -115,7 +123,25 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleAdmitDefeat(String message) {
+        // TODO 从 message 解析 clientId
+        int clientId = 1;
+        int winnerNumber = (clientId == player1ClientId ? 2 : 1);
+        List<Integer> indexOfRowStones = board.getIndexOfRowStones();
+        List<Stone> rowStones = new ArrayList<Stone>();
+        for (int index : indexOfRowStones) {
+            try {
+                rowStones.add(board.getStoneFromIndex(index));
+            }
+            catch (ArrayIndexOutOfBoundsException ignored) {
+            }
+        }
         board.reset();
+        /**
+         * message
+         * @arg winnerNumber     胜者编号
+         * @arg indexOfRowStones 连珠的棋子编号
+         * @arg rowStones        连珠的棋子
+         */
         // TODO 向双方 client 发送游戏结束命令
     }
     
@@ -157,34 +183,43 @@ public class Server extends AbstractSocket {
             board.putStone(i, j);
             Stone stone = board.getLastStone();
             int historySize = board.getHistorySize();
+            /**
+             * message
+             * @arg stone         落子的 stone
+             * @arg previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
+             * @arg historySize   落子完成后棋盘上的棋子数
+             */
             // TODO 向双方 client 发送落子命令
+            // 若没有选择玩家颜色
             if (!board.isPlayerColorChosen() && (board.getHistorySize() == 3 || board.getHistorySize() == 5)) {
-                waitingForResponse = true;
-                if (board.getHistorySize() == 3)
-                    waitingForResponseClientId = 1; // TODO
+                waitingForResponse = true; // 等待 client 回应
+                waitingForResponseClientId = 3 - clientId; // 对方的 clientId
             }
-            List<Integer> indexOfRowStones = board.getIndexOfRowStones();
-            if (board.isGameOver()) {
-                List<Stone> rowStones = new ArrayList<Stone>();
-                for (int index : indexOfRowStones) {
-                    try {
-                        rowStones.add(board.getStoneFromIndex(index));
+            else { // 没有选择玩家颜色不可能出现连珠 所以直接用了 else
+                // 检查是否连珠
+                List<Integer> indexOfRowStones = board.getIndexOfRowStones();
+                if (board.isGameOver()) {
+                    List<Stone> rowStones = new ArrayList<Stone>();
+                    for (int index : indexOfRowStones) {
+                        try {
+                            rowStones.add(board.getStoneFromIndex(index));
+                        }
+                        catch (ArrayIndexOutOfBoundsException ignored) {
+                        }
                     }
-                    catch (ArrayIndexOutOfBoundsException ignored) {
-                    }
+                    int winnerNumber;
+                    if (indexOfRowStones.size() >= 5)
+                        winnerNumber = 3 - board.getNextPlayerNumber();
+                    else
+                        winnerNumber = 0; // 平局
+                    /**
+                     * message
+                     * @arg winnerNumber     胜者编号
+                     * @arg indexOfRowStones 连珠的棋子编号
+                     * @arg rowStones        连珠的棋子
+                     */
+                    // TODO 向双方 client 发送游戏结束命令
                 }
-                int winnerNumber;
-                if (indexOfRowStones.size() >= 5)
-                    winnerNumber = 3 - board.getNextPlayerNumber();
-                else
-                    winnerNumber = 0; // 平局
-                /**
-                 * message
-                 * @arg winnerNumber     胜者编号
-                 * @arg indexOfRowStones 连珠的棋子编号
-                 * @arg rowStones        连珠的棋子
-                 */
-                // TODO 向双方 client 发送游戏结束命令
             }
         }
         catch (GameNotStartedException | BadInputStoneException ignored) {
@@ -212,8 +247,10 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleRequireToRetractStone(String message) {
+        // TODO 从 message 解析 clientId
+        int clientId = 1;
         waitingForResponse = true; // 等待对方 client 回应
-        waitingForResponseClientId = 1; // TODO 设为对方 clientId
+        waitingForResponseClientId = 3 - clientId; // 对方的 clientId
         // TODO 直接转发对方 client（报文头可能需要稍作修改）
     }
     
@@ -230,6 +267,12 @@ public class Server extends AbstractSocket {
             Stone stone = board.retractStone();
             Stone previousStone = board.getLastStone();
             int historySize = board.getHistorySize();
+            /**
+             * message
+             * @arg stone         被移走的 stone
+             * @arg previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
+             * @arg historySize   悔棋完成后棋盘上的棋子数
+             */
             // TODO 向双方 client 发送悔棋命令
         }
         catch (GameNotStartedException ignored) {
@@ -273,6 +316,11 @@ public class Server extends AbstractSocket {
         
         if (board.isPlayerColorChosen()) {
             int presetStoneNumber = board.getHistorySize();
+            /**
+             * message
+             * @arg presetStoneNumber 预先放置的棋子数
+             * @arg type              玩家棋子类型
+             */
             // TODO 向双方 client 发送对应的棋子执子
         }
     }
