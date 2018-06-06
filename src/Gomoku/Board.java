@@ -197,7 +197,7 @@ class Board {
     }
     
     
-    public Stone removeStone() throws GameNotStartedException, EmptyStackException {
+    public Stone retractStone() throws GameNotStartedException, EmptyStackException {
         if (!isGameStarted())
             throw new GameNotStartedException();
         if (!canRetractStone())

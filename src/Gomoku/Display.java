@@ -115,40 +115,40 @@ class Display extends JPanel {
     
     // TODO 待修改
     public void choosePlayerColor() {
-        // if (board.getHistorySize() == 3) {
-        //     String message = "玩家 2 选择执子颜色";
-        //     messageLabel.setText(message);
-        //     String[] options = {"执黑", "执白", "继续"};
-        //     int state = JOptionPane.showOptionDialog(this,
-        //                                              message,
-        //                                              "",
-        //                                              JOptionPane.YES_NO_CANCEL_OPTION,
-        //                                              JOptionPane.QUESTION_MESSAGE,
-        //                                              null,
-        //                                              options,
-        //                                              options[0]);
-        //     if (state == JOptionPane.YES_OPTION)
-        //         board.choosePlayer1Color(StoneType.WHITE);
-        //     else if (state == JOptionPane.NO_OPTION)
-        //         board.choosePlayer1Color(StoneType.BLACK);
-        // }
-        // else if (!board.isPlayerColorChosen() && board.getHistorySize() == 5) {
-        //     String message = "玩家 1 选择执子颜色";
-        //     messageLabel.setText(message);
-        //     String[] options = {"执黑", "执白"};
-        //     int state = JOptionPane.showOptionDialog(this,
-        //                                              message,
-        //                                              "",
-        //                                              JOptionPane.OK_CANCEL_OPTION,
-        //                                              JOptionPane.QUESTION_MESSAGE,
-        //                                              null,
-        //                                              options,
-        //                                              options[0]);
-        //     if (state == JOptionPane.YES_OPTION)
-        //         board.choosePlayer1Color(StoneType.BLACK);
-        //     else
-        //         board.choosePlayer1Color(StoneType.WHITE);
-        // }
+        if (getHistorySize() == 3) {
+            String message = "玩家 2 选择执子颜色";
+            messageLabel.setText(message);
+            String[] options = {"执黑", "执白", "继续"};
+            int state = JOptionPane.showOptionDialog(this,
+                                                     message,
+                                                     "",
+                                                     JOptionPane.YES_NO_CANCEL_OPTION,
+                                                     JOptionPane.QUESTION_MESSAGE,
+                                                     null,
+                                                     options,
+                                                     options[0]);
+            if (state == JOptionPane.YES_OPTION)
+                board.choosePlayer1Color(StoneType.WHITE);
+            else if (state == JOptionPane.NO_OPTION)
+                board.choosePlayer1Color(StoneType.BLACK);
+        }
+        else if (!board.isPlayerColorChosen() && board.getHistorySize() == 5) {
+            String message = "玩家 1 选择执子颜色";
+            messageLabel.setText(message);
+            String[] options = {"执黑", "执白"};
+            int state = JOptionPane.showOptionDialog(this,
+                                                     message,
+                                                     "",
+                                                     JOptionPane.OK_CANCEL_OPTION,
+                                                     JOptionPane.QUESTION_MESSAGE,
+                                                     null,
+                                                     options,
+                                                     options[0]);
+            if (state == JOptionPane.YES_OPTION)
+                board.choosePlayer1Color(StoneType.BLACK);
+            else
+                board.choosePlayer1Color(StoneType.WHITE);
+        }
     }
     
     

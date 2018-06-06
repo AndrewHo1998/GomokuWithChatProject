@@ -4,9 +4,11 @@ public class Client extends AbstractSocket {
     private final Gomoku gomoku;
     private Display display;
     private boolean gameStarted;
+    private Server server;
     
     
-    public Client() {
+    // TODO 初始化
+    public Client(/* args */) {
         gomoku = new Gomoku(this);
         display = gomoku.getDisplay();
     }
@@ -32,11 +34,12 @@ public class Client extends AbstractSocket {
      */
     public void requirePutStone(int i, int j) {
         /**
+         * message
          * @type AbstractSocket.REQUIRE_TO_NEW_GAME
          * @arg i
          * @arg j
          * */
-        send("");
+        send(server, "");
     }
     
     
@@ -53,11 +56,13 @@ public class Client extends AbstractSocket {
     
     
     /**
+     * 在界面上显示悔棋结果
+     *
      * @param stone         被移走的 stone
      * @param previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
      * @param historySize   悔棋完成后棋盘上的棋子数
      */
-    private void removeStone(Stone stone, Stone previousStone, int historySize) {
+    private void retractStone(Stone stone, Stone previousStone, int historySize) {
         display.retractStone(stone, previousStone, historySize);
     }
 }

@@ -58,7 +58,7 @@ public class Gomoku extends JFrame {
                 display.admitDefeat();
         });
         retractButton.addActionListener(e -> display.retractStone());
-        showRuleButton.addActionListener(e -> new Thread(() -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE)).run());
+        showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
         sendButton.addActionListener(e -> {
             chatTextArea.setText(chatTextArea.getText().trim() + '\n' + chatTextField.getText().trim());
             chatTextField.setText("");
