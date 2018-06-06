@@ -17,15 +17,15 @@ public abstract class AbstractSocket extends Socket {
     public static final int ACCEPT_TO_RETRACT_STONE = 10;  // client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
     public static final int REJECT_TO_RETRACT_STONE = 11;  // client 拒绝悔棋，server 直接转发对方 client。
     public static final int CHOOSE_PLAYER_COLOR = 12;      // client 选择执子颜色
+    public static final int SET_PLAYER_COLOR = 13;         // server 指定玩家执子颜色
     
     
     /**
      * 向其他 Socket 发送报文，返回是否发送成功。
      *
-     * @param target  目标 Socket
      * @param message 报文内容
      */
-    public boolean send(AbstractSocket target, String message) {
+    public boolean send(String message) {
         boolean success = false;
         // TODO 待修改
         return success;
@@ -35,10 +35,9 @@ public abstract class AbstractSocket extends Socket {
     /**
      * 从其他 Socket 接受报文，返回是否接收成功。
      *
-     * @param source  源 Socket
      * @param message 报文内容
      */
-    public boolean receive(AbstractSocket source, String message) {
+    public boolean receive(String message) {
         boolean success = false;
         // TODO 待修改
         return success;
@@ -100,8 +99,11 @@ public abstract class AbstractSocket extends Socket {
             case REJECT_TO_RETRACT_STONE:  // client 拒绝悔棋，server 直接转发对方 client。
                 handleRejectToRetractStone(message);
                 break;
-            case CHOOSE_PLAYER_COLOR:      // 选择执子颜色
+            case CHOOSE_PLAYER_COLOR:      // client 选择执子颜色
                 handleChoosePlayerColor(message);
+                break;
+            case SET_PLAYER_COLOR:
+                handleSetPlayerColor(message);
                 break;
         }
     }
@@ -148,6 +150,7 @@ public abstract class AbstractSocket extends Socket {
     
     /**
      * client 认输，server 结束游戏，server 接收后向双方 client 发送游戏结束命令。
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -163,6 +166,7 @@ public abstract class AbstractSocket extends Socket {
     
     /**
      * client 请求落子，server 进行处理，若可以落子则向双方 client 发送落子命令。
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -187,6 +191,7 @@ public abstract class AbstractSocket extends Socket {
     
     /**
      * client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -200,11 +205,20 @@ public abstract class AbstractSocket extends Socket {
     protected abstract void handleRejectToRetractStone(String message);
     
     /**
-     * 选择执子颜色
+     * client 选择执子颜色
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
     protected abstract void handleChoosePlayerColor(String message);
+    
+    /**
+     * server 指定玩家执子颜色
+     * server 不可能接收到这个消息
+     *
+     * @param message 接收到的报文
+     */
+    protected abstract void handleSetPlayerColor(String message);
 }
 
 

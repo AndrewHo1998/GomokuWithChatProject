@@ -39,7 +39,7 @@ public class Client extends AbstractSocket {
          * @arg i
          * @arg j
          * */
-        send(server, "");
+        send( "");
     }
     
     

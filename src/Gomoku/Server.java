@@ -9,9 +9,7 @@ public class Server extends AbstractSocket {
     private boolean waitingForResponse; // 是否正在等待 client 回应
     private int waitingForResponseClientId; // 是否正在等待的 client 的 ID
     private Board board; // 棋盘
-    private int player1ClientId; // 玩家 1 的客户端号
-    private Client client1; // client1，如果在构造函数里面就可以初始化的话可以设置为 final 属性。
-    private Client client2; // client2，如果在构造函数里面就可以初始化的话可以设置为 final 属性。
+    private int player1ClientId; // 玩家 1 的客户端编号
     
     
     // TODO 初始化
@@ -27,18 +25,22 @@ public class Server extends AbstractSocket {
     /**
      * 从其他 Socket 接受报文，返回是否接收成功。
      *
-     * @param source  源 Socket
      * @param message 报文内容
      */
     @Override
-    public boolean receive(AbstractSocket source, String message) {
+    public boolean receive(String message) {
         // TODO 接收消息
-        super.receive(source, message);
+        // TODO 从 message 解析 clientId
+        int clientId = 1;
+        super.receive(message);
         if (waitingForResponse) {
-            // TODO 错误处理
-            if ((waitingForResponseClientId == 1 && source == client1) || (waitingForResponseClientId == 2 && source == client2)) {
+            if (waitingForResponseClientId == clientId) {
                 waitingForResponse = false; // 不再等待 client 回应
                 waitingForResponseClientId = 0;
+            }
+            else {
+                // 从错误的 client 接收消息
+                // TODO 错误处理
             }
         }
         return true;
@@ -69,7 +71,10 @@ public class Server extends AbstractSocket {
         int clientId = 1;
         waitingForResponse = true; // 等待对方 client 回应
         waitingForResponseClientId = 3 - clientId; // 对方的 clientId
-        // TODO 直接转发对方 client（报文头可能需要稍作修改）
+        /**
+         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * @messageType REQUIRE_TO_NEW_GAME
+         */
     }
     
     
@@ -86,10 +91,10 @@ public class Server extends AbstractSocket {
         board.newGame();
         player1ClientId = 3 - clientId; // 请求新建游戏的玩家的编号为 1，同意新建游戏的玩家的编号为 2（就是本函数 message 的来源）。
         /**
-         * message
-         * @arg playerNumber
+         * TODO 向双方 client 发送新建游戏命令
+         * @messageType NEW_GAME
+         * @messageArg playerNumber 玩家编号
          */
-        // TODO 向双方 client 发送新建游戏命令
     }
     
     
@@ -101,7 +106,10 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleRejectToNewGame(String message) {
         // 接收函数已保证从正确的 client 接收消息
-        // TODO 直接转发对方 client（报文头可能需要稍作修改）
+        /**
+         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * @messageType REJECT_TO_NEW_GAME
+         */
     }
     
     
@@ -118,6 +126,7 @@ public class Server extends AbstractSocket {
     
     /**
      * client 认输，server 结束游戏，server 接收后向双方 client 发送游戏结束命令。
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -137,12 +146,12 @@ public class Server extends AbstractSocket {
         }
         board.reset();
         /**
-         * message
-         * @arg winnerNumber     胜者编号
-         * @arg indexOfRowStones 连珠的棋子编号
-         * @arg rowStones        连珠的棋子
+         * TODO 向双方 client 发送游戏结束命令
+         * @messageType GAME_OVER
+         * @messageArg winnerNumber     胜者编号
+         * @messageArg indexOfRowStones 连珠的棋子编号
+         * @messageArg rowStones        连珠的棋子
          */
-        // TODO 向双方 client 发送游戏结束命令
     }
     
     
@@ -159,6 +168,7 @@ public class Server extends AbstractSocket {
     
     /**
      * client 请求落子，server 进行处理，若可以落子则向双方 client 发送落子命令。
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -184,12 +194,13 @@ public class Server extends AbstractSocket {
             Stone stone = board.getLastStone();
             int historySize = board.getHistorySize();
             /**
-             * message
-             * @arg stone         落子的 stone
-             * @arg previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
-             * @arg historySize   落子完成后棋盘上的棋子数
+             * TODO 向双方 client 发送落子命令
+             * @messageType PUT_STONE
+             * @messageArg stone         落子的 stone
+             * @messageArg previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
+             * @messageArg historySize   落子完成后棋盘上的棋子数
              */
-            // TODO 向双方 client 发送落子命令
+            
             // 若没有选择玩家颜色
             if (!board.isPlayerColorChosen() && (board.getHistorySize() == 3 || board.getHistorySize() == 5)) {
                 waitingForResponse = true; // 等待 client 回应
@@ -213,12 +224,12 @@ public class Server extends AbstractSocket {
                     else
                         winnerNumber = 0; // 平局
                     /**
-                     * message
-                     * @arg winnerNumber     胜者编号
-                     * @arg indexOfRowStones 连珠的棋子编号
-                     * @arg rowStones        连珠的棋子
+                     * TODO 向双方 client 发送游戏结束命令
+                     * @messageType GAME_OVER
+                     * @messageArg winnerNumber     胜者编号
+                     * @messageArg indexOfRowStones 连珠的棋子编号
+                     * @messageArg rowStones        连珠的棋子
                      */
-                    // TODO 向双方 client 发送游戏结束命令
                 }
             }
         }
@@ -251,12 +262,16 @@ public class Server extends AbstractSocket {
         int clientId = 1;
         waitingForResponse = true; // 等待对方 client 回应
         waitingForResponseClientId = 3 - clientId; // 对方的 clientId
-        // TODO 直接转发对方 client（报文头可能需要稍作修改）
+        /**
+         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * @messageType REQUIRE_TO_RETRACT_STONE
+         */
     }
     
     
     /**
      * client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -268,12 +283,12 @@ public class Server extends AbstractSocket {
             Stone previousStone = board.getLastStone();
             int historySize = board.getHistorySize();
             /**
-             * message
-             * @arg stone         被移走的 stone
-             * @arg previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
-             * @arg historySize   悔棋完成后棋盘上的棋子数
+             * TODO 向双方 client 发送悔棋命令
+             * @messageType RETRACT_STONE
+             * @messageArg stone         被移走的 stone
+             * @messageArg previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
+             * @messageArg historySize   悔棋完成后棋盘上的棋子数
              */
-            // TODO 向双方 client 发送悔棋命令
         }
         catch (GameNotStartedException ignored) {
         }
@@ -288,12 +303,16 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleRejectToRetractStone(String message) {
         // 接收函数已保证从正确的 client 接收消息
-        // TODO 直接转发对方 client（报文头可能需要稍作修改）
+        /**
+         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * @messageType REJECT_TO_RETRACT_STONE
+         */
     }
     
     
     /**
-     * 选择执子颜色
+     * client 选择执子颜色
+     * client 不可能接收到这个消息
      *
      * @param message 接收到的报文
      */
@@ -317,11 +336,22 @@ public class Server extends AbstractSocket {
         if (board.isPlayerColorChosen()) {
             int presetStoneNumber = board.getHistorySize();
             /**
-             * message
+             * TODO 向双方 client 发送对应的棋子执子
+             * @messageType SET_PLAYER_COLOR
              * @arg presetStoneNumber 预先放置的棋子数
              * @arg type              玩家棋子类型
              */
-            // TODO 向双方 client 发送对应的棋子执子
         }
+    }
+    
+    
+    /**
+     * server 指定玩家执子颜色
+     * server 不可能接收到这个消息
+     *
+     * @param message 接收到的报文
+     */
+    @Override
+    protected void handleSetPlayerColor(String message) {
     }
 }
