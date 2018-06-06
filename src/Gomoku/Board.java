@@ -74,14 +74,13 @@ class Stone {
 
 
 class Board {
-    private final DataChangeSupport<Boolean> gameStartedChangeSupport;
-    private final DataChangeSupport<Integer> historySizeChangeSupport;
-    private final List<Integer> indexOfRowStones;
     private final StoneType[][] board;
     private final Stack<Stone> history;
     private StoneType player1StoneType;
     private int presetStoneNumber;
+    private boolean gameStarted;
     private boolean rowStonesUpdated;
+    private final List<Integer> indexOfRowStones;
     
     public static final int n = 15;
     private static final int[] dI = {1, 1, 0, -1};
@@ -91,8 +90,7 @@ class Board {
     public Board() {
         history = new Stack<Stone>();
         board = new StoneType[n + 2][n + 2];
-        gameStartedChangeSupport = new DataChangeSupport<Boolean>(this, false);
-        historySizeChangeSupport = new DataChangeSupport<Integer>(this, 0);
+        gameStarted = false;
         player1StoneType = StoneType.SPACE;
         presetStoneNumber = 5;
         rowStonesUpdated = false;
@@ -103,18 +101,17 @@ class Board {
     
     public void newGame() {
         reset();
-        gameStartedChangeSupport.setValue(true);
+        gameStarted = true;
     }
     
     
     public void reset() {
-        gameStartedChangeSupport.setValue(false);
+        gameStarted = false;
         player1StoneType = StoneType.SPACE;
         presetStoneNumber = 5;
         rowStonesUpdated = false;
         indexOfRowStones.clear();
         history.clear();
-        historySizeChangeSupport.setValue(0);
         for (int i = 0; i < n + 2; ++i) {
             for (int j = 0; j < n + 2; ++j)
                 board[i][j] = StoneType.SPACE;
@@ -123,12 +120,12 @@ class Board {
     
     
     public boolean isGameStarted() {
-        return gameStartedChangeSupport.getValue();
+        return gameStarted;
     }
     
     
     public boolean isGameOver() {
-        return !gameStartedChangeSupport.getValue();
+        return !gameStarted;
     }
     
     
@@ -141,6 +138,11 @@ class Board {
         assert (!isPlayerColorChosen() && player1StoneType != StoneType.SPACE);
         this.player1StoneType = player1StoneType;
         presetStoneNumber = history.size();
+    }
+    
+    
+    public StoneType getPlayer1StoneType() {
+        return player1StoneType;
     }
     
     
@@ -192,8 +194,7 @@ class Board {
         history.push(lastStone);
         rowStonesUpdated = false;
         if (history.size() == n * n)
-            gameStartedChangeSupport.setValue(false);
-        historySizeChangeSupport.setValue(history.size());
+            gameStarted = false;
     }
     
     
@@ -205,7 +206,6 @@ class Board {
         Stone lastStone = history.pop();
         board[lastStone.getI()][lastStone.getJ()] = StoneType.SPACE;
         rowStonesUpdated = false;
-        historySizeChangeSupport.setValue(history.size());
         return lastStone;
     }
     
@@ -233,7 +233,7 @@ class Board {
                     while (board[i + (backward - 1) * dI[direction]][j + (backward - 1) * dJ[direction]] == type)
                         --backward;
                     if (forward - backward + 1 == 5) {
-                        gameStartedChangeSupport.setValue(false);
+                        gameStarted = false;
                         for (int k = backward; k <= forward; ++k)
                             pointList.add(new Point(i + k * dI[direction], j + k * dJ[direction]));
                     }
@@ -255,16 +255,6 @@ class Board {
         }
         rowStonesUpdated = true;
         return indexOfRowStones;
-    }
-    
-    
-    public void addGameStartedChangeListener(PropertyChangeListener listener) {
-        gameStartedChangeSupport.addPropertyChangeListener(listener);
-    }
-    
-    
-    public void addHistorySizeChangeListener(PropertyChangeListener listener) {
-        historySizeChangeSupport.addPropertyChangeListener(listener);
     }
 }
 

@@ -14,56 +14,201 @@ public class Client extends AbstractSocket {
     }
     
     
-    /* 向服务端请求新建游戏，服务端将请求转发到对方客户端。 */
-    public boolean requireNewGame() {
-        return false;
-    }
-    
-    
-    /* 向服务端请求新建游戏，服务端将请求转发到对方客户端。 */
-    public boolean replyNewGame() {
-        return false;
+    /**
+     * server 向双方 client 发送新建游戏命令
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = NEW_GAME
+     * @implNote server 不可能接收到这个消息
+     */
+    @Override
+    protected void handleNewGame(String message) {
+        int playerNumber = 1; // TODO 从 message 解析 playerNumber
+        display.newGame(playerNumber);
     }
     
     
     /**
-     * 向 server 请求落子
+     * client 请求新建游戏，server 直接转发对方 client。
+     * client 弹出窗口，让用户选择是否开始。
+     * server 直接转发对方 client
      *
-     * @param i 落子的横坐标
-     * @param j 落子的横坐标
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = INQUIRE_TO_NEW_GAME
      */
-    public void requirePutStone(int i, int j) {
-        /**
-         * message
-         * @type AbstractSocket.REQUIRE_TO_NEW_GAME
-         * @arg i
-         * @arg j
-         * */
-        send( "");
+    @Override
+    protected void handleInquireToNewGame(String message) {
+    
     }
     
     
     /**
-     * 在界面上显示落子结果
+     * client 同意新建游戏，server 新建游戏，并向双方 client 发送新建游戏命令。
      *
-     * @param stone         落子的 stone
-     * @param previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
-     * @param historySize   落子完成后棋盘上的棋子数
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = ACCEPT_TO_NEW_GAME
      */
-    private void putStone(Stone stone, Stone previousStone, int historySize) {
-        display.putStone(stone, previousStone, historySize);
+    @Override
+    protected void handleAcceptToNewGame(String message) {
+    
     }
     
     
     /**
-     * 在界面上显示悔棋结果
+     * client 拒绝新建游戏，server 直接转发对方 client。
      *
-     * @param stone         被移走的 stone
-     * @param previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
-     * @param historySize   悔棋完成后棋盘上的棋子数
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = REJECT_TO_NEW_GAME
      */
-    private void retractStone(Stone stone, Stone previousStone, int historySize) {
-        display.retractStone(stone, previousStone, historySize);
+    @Override
+    protected void handleRejectToNewGame(String message) {
+    
+    }
+    
+    
+    /**
+     * server 向双方 client 发送游戏结束命令
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = GAME_OVER
+     * @implNote server 不可能接收到这个消息
+     */
+    @Override
+    protected void handleGameOver(String message) {
+    
+    }
+    
+    
+    /**
+     * client 认输，server 结束游戏，server 接收后向双方 client 发送游戏结束命令。
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = ADMIT_DEFEAT
+     * @implNote client 不可能接收到这个消息
+     */
+    @Override
+    protected void handleAdmitDefeat(String message) {
+    
+    }
+    
+    
+    /**
+     * server 向双方 client 发送落子命令
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = PUT_STONE
+     * @implNote server 不可能接收到这个消息
+     */
+    @Override
+    protected void handlePutStone(String message) {
+    
+    }
+    
+    
+    /**
+     * client 请求落子，server 进行处理，若可以落子则向双方 client 发送落子命令。
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = INQUIRE_TO_PUT_STONE
+     * @implNote client 不可能接收到这个消息
+     */
+    @Override
+    protected void handleInquireToPutStone(String message) {
+    
+    }
+    
+    
+    /**
+     * server 向双方 client 发送悔棋命令
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = RETRACT_STONE
+     * @implNote server 不可能接收到这个消息
+     */
+    @Override
+    protected void handleRetractStone(String message) {
+    
+    }
+    
+    
+    /**
+     * client 请求悔棋，server 直接转发对方 client。
+     * client 弹出窗口，让用户选择是否同意。
+     * server 直接转发对方 client
+     *
+     * @param message 报文
+     *
+     * @implNote messageType = INQUIRE_TO_RETRACT_STONE
+     */
+    @Override
+    protected void handleInquireToRetractStone(String message) {
+    
+    }
+    
+    
+    /**
+     * client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = ACCEPT_TO_RETRACT_STONE
+     * @implNote client 不可能接收到这个消息
+     */
+    @Override
+    protected void handleAcceptToRetractStone(String message) {
+    
+    }
+    
+    
+    /**
+     * client 拒绝悔棋，server 直接转发对方 client。
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = REJECT_TO_RETRACT_STONE
+     */
+    @Override
+    protected void handleRejectToRetractStone(String message) {
+    
+    }
+    
+    
+    /**
+     * client 选择执子颜色
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = CHOOSE_PLAYER_COLOR
+     * @implNote client 不可能接收到这个消息
+     */
+    @Override
+    protected void handleChoosePlayerColor(String message) {
+    
+    }
+    
+    
+    /**
+     * server 指定玩家执子颜色
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = SET_PLAYER_COLOR
+     * @implNote server 不可能接收到这个消息
+     */
+    @Override
+    protected void handleSetPlayerColor(String message) {
+        StoneType playerStoneType = StoneType.BLACK; // TODO 从 message 解析 (playerStoneType, playerNumber)
+        int presetStoneNumber = 5;
+        display.setPlayerStoneType(playerStoneType, presetStoneNumber);
     }
 }
 

@@ -16,7 +16,7 @@ class Display extends JPanel {
     private final DataChangeSupport<Integer> historySizeChangeSupport; // 棋盘上的棋子个数
     private final Client client; // 本方客户端
     private int presetStoneNumber; // 预先放置的棋子数
-    private StoneType playerStoneType; // 本方玩家的棋子颜色
+    private StoneType playerStoneType; // 本方玩家执子颜色
     private int playerNumber; // 本方玩家号
     
     public static final int sideLength = 40;
@@ -113,9 +113,10 @@ class Display extends JPanel {
         gameOver(3 - getNextPlayerNumber());
     }
     
+    
     // TODO 待修改
     public void choosePlayerColor() {
-        if (getHistorySize() == 3) {
+        if (getHistorySize() == 3 && playerNumber == 2) {
             String message = "玩家 2 选择执子颜色";
             messageLabel.setText(message);
             String[] options = {"执黑", "执白", "继续"};
@@ -223,11 +224,13 @@ class Display extends JPanel {
     
     
     /**
-     * 设置预先放置的棋子数
+     * 设置玩家执子颜色
      *
+     * @param playerStoneType   玩家执子颜色
      * @param presetStoneNumber 预先放置的棋子数
      */
-    public void setPresetStoneNumber(int presetStoneNumber) {
+    public void setPlayerStoneType(StoneType playerStoneType, int presetStoneNumber) {
+        this.playerStoneType = playerStoneType;
         this.presetStoneNumber = presetStoneNumber;
     }
     
