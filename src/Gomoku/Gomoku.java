@@ -10,6 +10,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
 public class Gomoku extends JFrame {
+    private final Client client;
     private final Display display;
     private final JButton retractButton;
     private final JButton newGameButton;
@@ -29,6 +30,7 @@ public class Gomoku extends JFrame {
     public Gomoku(Client client) {
         super("五子棋");
         assert client != null;
+        this.client = client;
         display = new Display(60, 60, client);
         setContentPane(display);
         
@@ -52,25 +54,25 @@ public class Gomoku extends JFrame {
     private void initActionListeners() {
         retractButton.setEnabled(false);
         newGameButton.addActionListener(e -> {
-            if (!board.isGameStarted())
-                display.newGame();
+            if (!display.isGameStarted())
+                client.inquireToNewGame();
             else
-                display.admitDefeat();
+                client.admitDefeat();
         });
-        retractButton.addActionListener(e -> display.retractStone());
+        retractButton.addActionListener(e -> client.inquireToRetractStone());
         showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
         sendButton.addActionListener(e -> {
             chatTextArea.setText(chatTextArea.getText().trim() + '\n' + chatTextField.getText().trim());
             chatTextField.setText("");
         });
-        board.addGameStartedChangeListener(evt -> {
+        display.addGameStartedChangeListener(evt -> {
             if ((Boolean) evt.getNewValue())
                 newGameButton.setText("认输");
             else
                 newGameButton.setText("新游戏");
-            retractButton.setEnabled(board.canRetractStone());
+            retractButton.setEnabled(display.canRetractStone());
         });
-        board.addHistorySizeChangeListener(evt -> retractButton.setEnabled(board.canRetractStone()));
+        display.addHistorySizeChangeListener(evt -> retractButton.setEnabled(display.canRetractStone()));
         display.addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -79,11 +81,7 @@ public class Gomoku extends JFrame {
             
             @Override
             public void mousePressed(MouseEvent e) {
-                try {
-                    display.requirePutStoneFromMouse(e.getX(), e.getY());
-                }
-                catch (GameNotStartedException | BadInputStoneException ignored) {
-                }
+                display.inquireToPutStoneFromMouse(e.getX(), e.getY());
             }
             
             

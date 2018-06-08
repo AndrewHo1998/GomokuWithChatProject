@@ -1,10 +1,12 @@
 package Gomoku;
 
+import javax.swing.*;
+import java.util.List;
+import java.util.ArrayList;
+
 public class Client extends AbstractSocket {
     private final Gomoku gomoku;
     private Display display;
-    private boolean gameStarted;
-    private Server server;
     
     
     // TODO 初始化
@@ -50,6 +52,7 @@ public class Client extends AbstractSocket {
      * @param message 接收到的报文
      *
      * @implNote messageType = ACCEPT_TO_NEW_GAME
+     * @implNote client 不可能接收到这个消息
      */
     @Override
     protected void handleAcceptToNewGame(String message) {
@@ -80,7 +83,10 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleGameOver(String message) {
-    
+        int winnerNumber = 1; // TODO 从 message 解析 (winnerNumber, indexOfRowStones, rowStones)
+        List<Integer> indexOfRowStones = new ArrayList<Integer>();
+        List<Stone> rowStones = new ArrayList<Stone>();
+        display.gameOver(winnerNumber, indexOfRowStones, rowStones);
     }
     
     
@@ -94,7 +100,6 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleAdmitDefeat(String message) {
-    
     }
     
     
@@ -108,7 +113,10 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handlePutStone(String message) {
-    
+        Stone stone = null; // TODO 从 message 解析 (stone, previousStone, historySize)
+        Stone previousStone = null;
+        int historySize = 0;
+        display.putStone(stone, previousStone, historySize);
     }
     
     
@@ -122,7 +130,6 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleInquireToPutStone(String message) {
-    
     }
     
     
@@ -136,7 +143,10 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRetractStone(String message) {
-    
+        Stone stone = null; // TODO 从 message 解析 (stone, previousStone, historySize)
+        Stone previousStone = null;
+        int historySize = 0;
+        display.retractStone(stone, previousStone, historySize);
     }
     
     
@@ -165,7 +175,6 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleAcceptToRetractStone(String message) {
-    
     }
     
     
@@ -192,7 +201,6 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleChoosePlayerColor(String message) {
-    
     }
     
     

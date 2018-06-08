@@ -59,8 +59,8 @@ public abstract class AbstractSocket extends Socket {
      * @param message 接收到的报文
      */
     protected void handleMessage(String message) {
-        int type = parseMessageType(message);
-        switch (type) {
+        int messageType = parseMessageType(message);
+        switch (messageType) {
             case NEW_GAME:                 // server 向双方 client 发送新建游戏命令
                 handleNewGame(message);
                 break;
@@ -134,6 +134,7 @@ public abstract class AbstractSocket extends Socket {
      * @param message 接收到的报文
      *
      * @implNote messageType = ACCEPT_TO_NEW_GAME
+     * @implNote client 不可能接收到这个消息
      */
     protected abstract void handleAcceptToNewGame(String message);
     

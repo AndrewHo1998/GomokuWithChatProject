@@ -6,6 +6,8 @@ package Gomoku;
 
 import javax.swing.*;
 import java.awt.*;
+import java.beans.PropertyChangeListener;
+import java.util.List;
 
 class Display extends JPanel {
     private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
@@ -92,10 +94,21 @@ class Display extends JPanel {
     /**
      * 结束游戏但不刷新界面
      *
-     * @param winnerNumber 胜者的玩家号
+     * @param winnerNumber     胜者的玩家号
+     * @param indexOfRowStones 连珠的棋子编号
+     * @param rowStones        连珠的棋子
      */
-    public void gameOver(int winnerNumber) {
+    public void gameOver(int winnerNumber, List<Integer> indexOfRowStones, List<Stone> rowStones) {
         reset();
+        Graphics2D g2D = (Graphics2D) getGraphics();
+        int rowStoneNumber = rowStones.size();
+        for (int i = 0; i < rowStoneNumber; ++i) {
+            try {
+                paintStoneWithIndex(g2D, rowStones.get(i), indexOfRowStones.get(i), true);
+            }
+            catch (ArrayIndexOutOfBoundsException ignored) {
+            }
+        }
         String message;
         if (winnerNumber == 1 || winnerNumber == 2)
             message = "玩家 " + winnerNumber + " 胜利";
@@ -105,16 +118,18 @@ class Display extends JPanel {
         JOptionPane.showMessageDialog(this, message, "游戏结束", JOptionPane.INFORMATION_MESSAGE);
     }
     
+    // /**
+    //  * 认输
+    //  */
+    // public void admitDefeat() {
+    //     // TODO 待修改
+    //     gameOver(3 - getNextPlayerNumber());
+    // }
+    
     
     /**
-     * 认输
+     * 选择执子颜色
      */
-    public void admitDefeat() {
-        gameOver(3 - getNextPlayerNumber());
-    }
-    
-    
-    // TODO 待修改
     public void choosePlayerColor() {
         if (getHistorySize() == 3 && playerNumber == 2) {
             String message = "玩家 2 选择执子颜色";
@@ -128,12 +143,14 @@ class Display extends JPanel {
                                                      null,
                                                      options,
                                                      options[0]);
-            if (state == JOptionPane.YES_OPTION)
-                board.choosePlayer1Color(StoneType.WHITE);
-            else if (state == JOptionPane.NO_OPTION)
-                board.choosePlayer1Color(StoneType.BLACK);
+            /**
+             * TODO 向 server 发送按键选择
+             * @messageType CHOOSE_PLAYER_COLOR
+             * @arg state 按键选择
+             */
+            client.choosePlayerColor(state);
         }
-        else if (!board.isPlayerColorChosen() && board.getHistorySize() == 5) {
+        else if (!isPlayerColorChosen() && getHistorySize() == 5 && playerNumber == 1) {
             String message = "玩家 1 选择执子颜色";
             messageLabel.setText(message);
             String[] options = {"执黑", "执白"};
@@ -145,10 +162,12 @@ class Display extends JPanel {
                                                      null,
                                                      options,
                                                      options[0]);
-            if (state == JOptionPane.YES_OPTION)
-                board.choosePlayer1Color(StoneType.BLACK);
-            else
-                board.choosePlayer1Color(StoneType.WHITE);
+            /**
+             * TODO 向 server 发送按键选择
+             * @messageType CHOOSE_PLAYER_COLOR
+             * @arg state 按键选择
+             */
+            client.choosePlayerColor(state);
         }
     }
     
@@ -193,12 +212,12 @@ class Display extends JPanel {
      * @param x 鼠标在面板上点击的横坐标
      * @param y 鼠标在面板上点击的纵坐标
      */
-    public void requirePutStoneFromMouse(int x, int y) {
+    public void inquireToPutStoneFromMouse(int x, int y) {
         try {
             int i = getIFromX(x), j = getJFromY(y);
             int xGrid = getXFromI(i), yGrid = getYFromJ(j);
             if ((x - xGrid) * (x - xGrid) + (y - yGrid) * (y - yGrid) < stoneRadius * stoneRadius)
-                client.requirePutStone(i, j);
+                client.inquireToPutStone(i, j);
         }
         catch (StoneOutOfBoardRangeException ignored) {
         }
@@ -279,6 +298,28 @@ class Display extends JPanel {
             return (getHistorySize() > presetStoneNumber);
         else
             return false;
+    }
+    
+    
+    /**
+     * 向 gameStartedChangeSupport 添加 PropertyChangeListener
+     * 当游戏开始或结束时触发事件
+     *
+     * @param listener 待添加的 PropertyChangeListener
+     */
+    public void addGameStartedChangeListener(PropertyChangeListener listener) {
+        gameStartedChangeSupport.addPropertyChangeListener(listener);
+    }
+    
+    
+    /**
+     * 向 historySizeChangeSupport 添加 PropertyChangeListener
+     * 当棋盘上棋子数目发生变化时触发事件
+     *
+     * @param listener 待添加的 PropertyChangeListener
+     */
+    public void addHistorySizeChangeListener(PropertyChangeListener listener) {
+        historySizeChangeSupport.addPropertyChangeListener(listener);
     }
     
     

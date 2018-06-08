@@ -5,12 +5,11 @@
 package Gomoku;
 
 import java.awt.Point;
-import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.util.ArrayList;
-import java.util.EmptyStackException;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Stack;
+import java.util.EmptyStackException;
 
 enum StoneType {
     SPACE, BLACK, WHITE

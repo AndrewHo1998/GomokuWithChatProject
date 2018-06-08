@@ -1,9 +1,9 @@
 package Gomoku;
 
-import javax.swing.*;
+import javax.swing.JOptionPane;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
-import java.util.List;
 
 public class Server extends AbstractSocket {
     private boolean waitingForResponse; // 是否正在等待 client 回应
@@ -84,6 +84,7 @@ public class Server extends AbstractSocket {
      * @param message 接收到的报文
      *
      * @implNote messageType = ACCEPT_TO_NEW_GAME
+     * @implNote client 不可能接收到这个消息
      */
     @Override
     protected void handleAcceptToNewGame(String message) {
