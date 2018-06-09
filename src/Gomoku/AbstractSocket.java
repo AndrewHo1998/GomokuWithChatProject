@@ -1,9 +1,12 @@
 package Gomoku;
 
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class AbstractSocket extends Socket {
     protected int socketId;
+    public static final int headLength = 5;
     public static final int NEW_GAME = 0;                  // server 向双方 client 发送新建游戏命令
     public static final int INQUIRE_TO_NEW_GAME = 1;       // client 请求新建游戏，server 直接转发对方 client。
     public static final int ACCEPT_TO_NEW_GAME = 2;        // client 同意新建游戏，server 新建游戏，并向双方 client 发送新建游戏命令。
@@ -274,6 +277,49 @@ public abstract class AbstractSocket extends Socket {
     protected byte[] packNewGame(int playerNumber) {
         byte[] message = {(byte) playerNumber};
         return packMessage(message);
+    }
+    
+    
+    protected Object[] unpackNewGame(byte[] message) {
+        int playerNumber = message[headLength];
+        return new Object[]{playerNumber};
+    }
+    
+    
+    protected byte[] packGameOver(int winnerNumber, List<Integer> indexOfRowStones, List<Stone> rowStones) {
+        int rowStoneNumber = rowStones.size();
+        byte[] message = new byte[3 + 3 * rowStoneNumber];
+        message[0] = (byte) winnerNumber;
+        message[1] = (byte) rowStoneNumber;
+        message[2] = (byte) (rowStones.get(0).getType() == StoneType.BLACK ? 1 : 2);
+        for (int index = 0; index < rowStoneNumber; ++index)
+            message[2 + index] = indexOfRowStones.get(index).byteValue();
+        for (int index = 0; index < rowStoneNumber; ++index) {
+            message[2 + 2 * rowStoneNumber + 2 * index] = (byte) rowStones.get(index).getI();
+            message[2 + 2 * rowStoneNumber + 2 * index + 1] = (byte) rowStones.get(index).getJ();
+        }
+        return packMessage(message);
+    }
+    
+    
+    protected Object[] unpackGameOver(byte[] message) {
+        int winnerNumber = message[headLength];
+        int rowStoneNumber = message[headLength + 1];
+        StoneType stoneType = (message[headLength + 2] == 1 ? StoneType.BLACK : StoneType.WHITE);
+        List<Integer> indexOfRowStones = new ArrayList<Integer>();
+        List<Stone> rowStones = new ArrayList<Stone>();
+        for (int index = 0; index < rowStoneNumber; ++index)
+            indexOfRowStones.add((int) message[headLength + 3 + index]);
+        for (int index = 0; index < rowStoneNumber; ++index) {
+            try {
+                int i = message[2 + 2 * rowStoneNumber + 2 * index];
+                int j = message[2 + 2 * rowStoneNumber + 2 * index + 1];
+                rowStones.add(new Stone(i, j, stoneType));
+            }
+            catch (StoneOutOfBoardRangeException ignored) {
+            }
+        }
+        return new Object[]{winnerNumber, indexOfRowStones, rowStones};
     }
 }
 
