@@ -6,7 +6,7 @@ import java.util.List;
 
 public abstract class AbstractSocket extends Socket {
     protected int socketId;
-    public static final int headLength = 5;
+    public static final int headLength = 6;
     public static final int NEW_GAME = 0;                  // server 向双方 client 发送新建游戏命令
     public static final int INQUIRE_TO_NEW_GAME = 1;       // client 请求新建游戏，server 直接转发对方 client。
     public static final int ACCEPT_TO_NEW_GAME = 2;        // client 同意新建游戏，server 新建游戏，并向双方 client 发送新建游戏命令。
@@ -21,6 +21,7 @@ public abstract class AbstractSocket extends Socket {
     public static final int REJECT_TO_RETRACT_STONE = 11;  // client 拒绝悔棋，server 直接转发对方 client。
     public static final int CHOOSE_PLAYER_COLOR = 12;      // client 选择执子颜色
     public static final int SET_PLAYER_COLOR = 13;         // server 指定玩家执子颜色
+    public static final int CHAT_TEXT = 14;                // client 发送聊天消息，server 直接转发对方 client。
     
     
     public int getSocketId() {
@@ -62,7 +63,7 @@ public abstract class AbstractSocket extends Socket {
      * @param message 接收到的报文
      */
     protected static int parseMessageType(byte[] message) {
-        return message[1];
+        return message[headLength - 1];
     }
     
     
@@ -115,6 +116,9 @@ public abstract class AbstractSocket extends Socket {
                 break;
             case SET_PLAYER_COLOR:         // server 指定玩家执子颜色
                 handleSetPlayerColor(message);
+                break;
+            case CHAT_TEXT:
+                handleChatText(message);
                 break;
         }
     }
@@ -260,9 +264,20 @@ public abstract class AbstractSocket extends Socket {
      */
     protected abstract void handleSetPlayerColor(byte[] message);
     
+    /**
+     * client 发送聊天消息，server 直接转发对方 client。
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = CHAT_TEXT
+     */
+    protected abstract void handleChatText(byte[] message);
     
-    protected byte[] packMessage(byte[] message) {
-        byte[] packedMessage = new byte[5 + message.length];
+    
+    protected byte[] packMessage(int messageType, byte[] message) {
+        if (message == null)
+            message = new byte[0];
+        byte[] packedMessage = new byte[headLength + message.length];
         System.arraycopy(message, 0, packedMessage, 0, message.length);
         packedMessage[0] = (byte) socketId;
         int length = message.length;
@@ -270,13 +285,14 @@ public abstract class AbstractSocket extends Socket {
         packedMessage[2] = (byte) (length >> 16);
         packedMessage[3] = (byte) (length >> 8);
         packedMessage[4] = (byte) length;
+        packedMessage[5] = (byte) messageType;
         return packedMessage;
     }
     
     
     protected byte[] packNewGame(int playerNumber) {
         byte[] message = {(byte) playerNumber};
-        return packMessage(message);
+        return packMessage(NEW_GAME, message);
     }
     
     
@@ -298,7 +314,7 @@ public abstract class AbstractSocket extends Socket {
             message[2 + 2 * rowStoneNumber + 2 * index] = (byte) rowStones.get(index).getI();
             message[2 + 2 * rowStoneNumber + 2 * index + 1] = (byte) rowStones.get(index).getJ();
         }
-        return packMessage(message);
+        return packMessage(GAME_OVER, message);
     }
     
     
@@ -320,6 +336,80 @@ public abstract class AbstractSocket extends Socket {
             }
         }
         return new Object[]{winnerNumber, indexOfRowStones, rowStones};
+    }
+    
+    
+    protected byte[] packPutStone(Stone stone, Stone previousStone, int historySize) {
+        byte[] message = new byte[7];
+        message[0] = (byte) stone.getI();
+        message[1] = (byte) stone.getJ();
+        message[2] = (byte) (stone.getType() == StoneType.BLACK ? 1 : 2);
+        message[3] = (byte) previousStone.getI();
+        message[4] = (byte) previousStone.getJ();
+        message[5] = (byte) (previousStone.getType() == StoneType.BLACK ? 1 : 2);
+        message[6] = (byte) historySize;
+        return packMessage(PUT_STONE, message);
+    }
+    
+    
+    protected Object[] unpackPutStone(byte[] message) {
+        Stone stone = null, previousStone = null;
+        try {
+            stone = new Stone(message[headLength], message[headLength + 1], (message[headLength + 2] == 1 ? StoneType.BLACK : StoneType.WHITE));
+            previousStone = new Stone(message[headLength + 3], message[headLength + 4], (message[headLength + 5] == 1 ? StoneType.BLACK : StoneType.WHITE));
+        }
+        catch (StoneOutOfBoardRangeException ignored) {
+        }
+        int historySize = message[headLength + 6];
+        return new Object[]{stone, previousStone, historySize};
+    }
+    
+    
+    protected byte[] packRetractStone(Stone stone, Stone previousStone, int historySize) {
+        byte[] putStoneMessage = packPutStone(stone, previousStone, historySize);
+        putStoneMessage[headLength - 1] = (byte) RETRACT_STONE;
+        return putStoneMessage;
+    }
+    
+    
+    protected Object[] unpackRetractStone(byte[] message) {
+        return unpackPutStone(message);
+    }
+    
+    
+    protected byte[] packChoosePlayerColor(int state) {
+        byte[] message = {(byte) state};
+        return packMessage(CHOOSE_PLAYER_COLOR, message);
+    }
+    
+    
+    protected Object[] unpackChoosePlayerColor(byte[] message) {
+        int state = message[headLength];
+        return new Object[]{state};
+    }
+    
+    
+    protected byte[] packSetPlayerColor(StoneType stoneType, int presetStoneNumber) {
+        byte[] message = {(byte) (stoneType == StoneType.BLACK ? 1 : 2), (byte) presetStoneNumber};
+        return packMessage(SET_PLAYER_COLOR, message);
+    }
+    
+    
+    protected Object[] unpackSetPlayerColor(byte[] message) {
+        StoneType stoneType = (message[headLength] == 1 ? StoneType.BLACK : StoneType.WHITE);
+        int presetStoneNumber = message[headLength + 1];
+        return new Object[]{stoneType, presetStoneNumber};
+    }
+    
+    
+    protected byte[] packChatText(String text) {
+        return packMessage(CHAT_TEXT, text.getBytes());
+    }
+    
+    
+    protected Object[] unpackChatText(byte[] message) {
+        String text = new String(message, headLength, message.length - headLength);
+        return new Object[]{text};
     }
 }
 

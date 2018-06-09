@@ -376,4 +376,17 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleSetPlayerColor(byte[] message) {
     }
+    
+    
+    /**
+     * client 发送聊天消息，server 直接转发对方 client。
+     *
+     * @param message 接收到的报文
+     *
+     * @implNote messageType = CHAT_TEXT
+     */
+    @Override
+    protected void handleChatText(byte[] message) {
+        // TODO server 直接转发对方 client
+    }
 }
