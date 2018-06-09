@@ -36,7 +36,7 @@ class ThreadCommu//进程间信息交换
 			this.toID=to;
 			context=buffer.toString();		
 	}
-	public void readCommu(byte[] buffer) //都
+	public void readCommu(byte[] buffer) //读
 	{
 		context=buffer.toString();
 	}
@@ -46,7 +46,7 @@ class myServerThread implements Runnable
 {
     private ServerSocket serv;
     private Socket client=null;
-    public int ServerN=0;
+    public int ServerN=1;
     String clientName;
     byte[] buffer=new byte[200];
     Queue<ThreadCommu> toMain=new SynchronousQueue<ThreadCommu>(); //向Main进程发送进程交流信息，进程安全，先进先出
@@ -105,6 +105,7 @@ class myServerThread implements Runnable
 					context=context+buffer[j];
 				
 				commuWithMain.context=context;
+				System.out.println("内容为："+context);
 				this.toMain.add(commuWithMain);//读到信息写进程通讯
 				
 			}
@@ -121,15 +122,10 @@ class myServerThread implements Runnable
 		{
 			System.out.println(ioe.getMessage());
 		}
-	}
-	
-
-    
-    
-    
+	}  
 }
 
-//server的图形界面先放弃了！from 章昕
+//server的图形界面先放弃了.
 
 
 public class server {
@@ -152,7 +148,7 @@ public class server {
 		   myServerThread tmp=servList.get(i);
 		   while(!tmp.toMain.isEmpty())
 		   {
-			   ThreadCommu communication=tmp.toMain.poll();
+			   ThreadCommu communication=tmp.toMain.poll();//出队
 			   servList.get(communication.toID).fromMain.add(communication);//把一个serverSocket接到的线程信息转给另外一个		   
 		   }
 		   }
