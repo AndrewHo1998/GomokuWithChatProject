@@ -1,14 +1,15 @@
-package Timer;
+package Gomoku.Timer;
 
 import java.awt.Font;
 import java.text.NumberFormat;
-
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import Gomoku.Display;
 
 public class CountDown extends JPanel{
+	Display display;
 	int remainSec;
-	final static int maxTime = 30;
+	final static int maxTime = 15;
 	JLabel labelS;
     Start ss;
     int width,height;
@@ -31,6 +32,9 @@ public class CountDown extends JPanel{
          this.setVisible(true);
 
      }
+    public void setDisplay(Display display) {
+    	this.display = display;
+    }
      public void start() {	
      	ss=new Start(this);
         ss.start();
@@ -47,7 +51,6 @@ public class CountDown extends JPanel{
      	NumberFormat nf = NumberFormat.getInstance();
          nf.setMinimumIntegerDigits(2) ;
          labelS.setText(nf.format(remainSec));
-
      }
      public void setTime(int s) {
 
@@ -73,10 +76,12 @@ public class CountDown extends JPanel{
 	             try {
 	                 Thread.sleep(1000);     
 	             } catch (InterruptedException e) {
-	                 break;  //结束线程
+	                 break;  
 	             }
 	             time_s--;
 	             if (time_s < 0) {
+	            	
+	            	new Thread(()->{display.admitDefeat();}).start();	// time over!
 	                break;
 	             }
 	             cd.setTime(time_s);

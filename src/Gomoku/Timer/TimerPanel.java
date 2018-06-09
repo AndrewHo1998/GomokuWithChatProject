@@ -1,4 +1,4 @@
-package Timer;
+package Gomoku.Timer;
 
 import java.awt.Font;
 import java.text.NumberFormat;
@@ -90,57 +90,58 @@ public class TimerPanel extends JPanel{
     public int getS() {
     	return sec;
     }
-}
-class Start extends Thread{
-	TimerPanel tp;
-
-    public Start(TimerPanel tp){
-        this.tp = tp;
-    }
-    @Override
-    public void run() {
-        int time_s,time_m,time_h;
-        time_s=tp.getS();
-        time_m=tp.getM();
-        time_h=tp.getH();
-
-        while (true) {
-            try {
-                Thread.sleep(1000);     
-            } catch (InterruptedException e) {
-                break;  // break loop
-            }
-            time_s++;
-            if (time_s>=60) {
-                time_m++;
-                time_s=0;  
-                if(time_m>=60){
-                    time_h++;
-                    time_m=0;
-                    if(time_m>=24){
-                        time_h=0;
-                    }
-                }
-            }
-            tp.setTime(time_h, time_m, time_s);
-            tp.showTime();
-
-        }
-    }
-
-}
-
-class Pause extends Thread{
-    Start ss;
-    public Pause(Start ss) {
-        this.ss=ss;
-    }
-    @Override
-    public void run() {
-    	try {
-        ss.interrupt();
-    	}catch(java.lang.NullPointerException e) {
-    		
-    	}
-    }
+    
+	class Start extends Thread{
+		TimerPanel tp;
+	
+	    public Start(TimerPanel tp){
+	        this.tp = tp;
+	    }
+	    @Override
+	    public void run() {
+	        int time_s,time_m,time_h;
+	        time_s=tp.getS();
+	        time_m=tp.getM();
+	        time_h=tp.getH();
+	
+	        while (true) {
+	            try {
+	                Thread.sleep(1000);     
+	            } catch (InterruptedException e) {
+	                break;  // break loop
+	            }
+	            time_s++;
+	            if (time_s>=60) {
+	                time_m++;
+	                time_s=0;  
+	                if(time_m>=60){
+	                    time_h++;
+	                    time_m=0;
+	                    if(time_m>=24){
+	                        time_h=0;
+	                    }
+	                }
+	            }
+	            tp.setTime(time_h, time_m, time_s);
+	            tp.showTime();
+	
+	        }
+	    }
+	
+	}
+	
+	class Pause extends Thread{
+	    Start ss;
+	    public Pause(Start ss) {
+	        this.ss=ss;
+	    }
+	    @Override
+	    public void run() {
+	    	try {
+	        ss.interrupt();
+	    	}catch(java.lang.NullPointerException e) {
+	    		
+	    	}
+	    }
+	}
 }

@@ -1,4 +1,4 @@
-package Timer;
+package Gomoku.Timer;
 
 public class TimeManager {
 	private CountDown countDown;

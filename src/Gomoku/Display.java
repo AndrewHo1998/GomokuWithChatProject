@@ -11,11 +11,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-import Timer.TimerPanel;
-import Timer.CountDown;
-import Timer.TimeManager;
+import Gomoku.Timer.*;
 
-class Display extends JPanel {
+public class Display extends JPanel {
     private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
     private final int[] stoneCenterX;
     private final int[] stoneCenterY;
@@ -64,6 +62,7 @@ class Display extends JPanel {
         
         countDown = new CountDown(2*Display.sideLength,2*Display.sideLength);
         countDown.setBounds(getBoardBoundXR() + 12 * Display.sideLength, getBoardBoundYU() - Display.sideLength, 2*Display.sideLength, 2*Display.sideLength);
+        countDown.setDisplay(this);
         add(countDown);
         
         timeManager = new TimeManager(countDown, timerPanel);
