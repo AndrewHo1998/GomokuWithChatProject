@@ -1,8 +1,6 @@
 package server;
 
 
-//还需要：让主线程将不同socket进程之间的信息发送到正确的server socket
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,50 +17,54 @@ import java.util.HashMap;
 import java.util.List;
 //import java.util.thread;
 import java.util.Queue;
-import java.util.concurrent.SynchronousQueue; 
+import java.util.concurrent.SynchronousQueue;
+
+import server.myServerThread.ThreadCommu; 
 
 
-class ThreadCommu//进程间信息交换
-{
-	byte from;
-	int toID; //发送给谁
-	String context; //内容
-	char[] flag=new char[2]; //报文类别
-	
-	public ThreadCommu()
-	{
-		
-	}
-	
-	public void writeCommu(int to, byte[]buffer) //写
-	{
-			this.toID=to;
-			context=new String();
-			for(int i=0;i<buffer.length;i++)
-				context=context+buffer[i];
 
-	}
-	public void readCommu(byte[] buffer) //都
-	{
-		for(int i=0;i<this.context.length();i++)
-			buffer[i]=(byte)context.charAt(i);
-	}
-}
 
 class myServerThread implements Runnable
 {
     //private Socket serv;
 	private ServerSocket serv;
     private Socket client;
-    public int ServerN=0;
+    private Socket client2;
+    //public int ServerN=0;
     String clientName;
     byte[] buffer=new byte[200];
-    Queue<ThreadCommu> toMain=new SynchronousQueue<ThreadCommu>(); //向Main进程发送进程交流信息，进程安全，先进先出
-    Queue<ThreadCommu> fromMain=new SynchronousQueue<ThreadCommu>(); //Main向本进程的信息
+    class ThreadCommu//进程间信息交换
+    {
+    	byte from;
+    	int toID; //发送给谁
+    	String context; //内容
+    	char[] flag=new char[2]; //报文类别
+    	
+    	public ThreadCommu()
+    	{
+    		
+    	}
+    	
+    	public void writeCommu(int to, byte[]buffer) //写
+    	{
+    			this.toID=to;
+    			context=new String();
+    			for(int i=0;i<buffer.length;i++)
+    				context=context+buffer[i];
+
+    	}
+    	public void readCommu(byte[] buffer) //都
+    	{
+    		for(int i=0;i<this.context.length();i++)
+    			buffer[i]=(byte)context.charAt(i);
+    	}
+    }
+    Queue<ThreadCommu> toC1=new SynchronousQueue<ThreadCommu>(); //向Main进程发送进程交流信息，进程安全，先进先出
+    Queue<ThreadCommu> toC2=new SynchronousQueue<ThreadCommu>(); //Main向本进程的信息
     
     public myServerThread (int listN, ServerSocket servMain) throws Exception
     {
-    	this.ServerN=listN;
+    	//this.ServerN=listN;
     	this.serv=servMain;
     	this.client=new Socket();
     	//连接
@@ -101,11 +103,27 @@ class myServerThread implements Runnable
     		is.read(buffer);
     }
     
-    public void send(byte[] message) throws IOException
+    public void sendto(byte[] message,int clientN) throws IOException
     {
-    	OutputStream os=this.client.getOutputStream();
-    	os.write(message);
+    	if(clientN==1)
+    		
+    		{
+    		OutputStream os=this.client.getOutputStream();
+    		os.write(message);
+    		}
+    	else
+    	{
+    		OutputStream os =this.client2.getOutputStream();
+    		os.write(message);
+    	}
+    	//os.write(message);
     }
+    
+    public void sendtoPlayer(byte[] message)
+    {
+    	
+    }
+    
     public void close() throws IOException
     {
     	this.client.close();
@@ -118,9 +136,10 @@ class myServerThread implements Runnable
 		{
 			//System.out.println("Server running on "+client.getLocalPort());
 			client=serv.accept();
-			System.out.println("Server running on "+client.getLocalPort());
+			System.out.println("client1 running on "+client.getLocalPort());
 			//this.client=serv.
-		
+			client2=serv.accept();
+			System.out.println("client2 running on "+client.getLocalPort());
 		//告诉客户端客户端的编号
 		buffer[0]=0x0;//来自server
 		buffer[1]=0x01;
@@ -128,12 +147,8 @@ class myServerThread implements Runnable
 		buffer[3]=0x0;
 		buffer[4]=0x0;//长度为1byte
 		
-		if(ServerN==1)
-			buffer[5]=0x01;
-		else
-			buffer[5]=0x02;//告诉客户端客户端的编号
 		
-		this.send(buffer);
+		//this.send(buffer);
 		
 		while(!client.isClosed())
 		{
@@ -142,31 +157,27 @@ class myServerThread implements Runnable
 			int length=tryRead(headBuf);
 			if(-1!=length)
 			{
-				System.out.println("Recieved message from No."+this.ServerN+" client.");
+				System.out.println("Recieved message from client");
 				this.setFrom(headBuf[0], commuWithMain);
 				byte[] restBuf=new byte[length];
 				this.read(restBuf);
-				
-				if(ServerN==1)
-					commuWithMain.toID=2;
-				else
-					commuWithMain.toID=1;
-				
+					
 				String context=new String();
 				for(int j=2;j<buffer.length;j++)
 					context=context+buffer[j];
 				
 				commuWithMain.context=context;
-				this.toMain.add(commuWithMain);//读到信息写进程通讯
+				this.toC1.add(commuWithMain);//读到信息写进程通讯
 				
-			}
-			for(int i=0;i<fromMain.size();i++)
+			}//收消息
+			
+			for(int i=0;i<toC2.size();i++)
 			{
 				OutputStream os=client.getOutputStream();
-				fromMain.poll().readCommu(buffer);//从main对此进程的信息中读取，然后发送给client
+				toC2.poll().readCommu(buffer);//从main对此进程的信息中读取，然后发送给client
 				os.write(buffer);
 				
-			}
+			}//发消息
 		}
 		//此步阻塞线程等待客户端连接	
 		}catch (IOException ioe)
@@ -190,6 +201,7 @@ public class server {
 	   List<myServerThread> servList=new ArrayList<myServerThread>();
 	   try{
 	   ServerSocket listen=new ServerSocket(9001);
+	   //listen.bind("127.0.0.1");
 	   for(int i=0;i<2;i++)
 	   {
 		   myServerThread serv=new myServerThread(i,listen);
@@ -202,15 +214,15 @@ public class server {
 		   for(int i=0;i<2;i++)
 		   {
 		   myServerThread tmp=servList.get(i);
-		   while(!tmp.toMain.isEmpty())
+		   while(!tmp.toC1.isEmpty())
 		   {
-			   ThreadCommu communication=tmp.toMain.poll();
-			   servList.get(communication.toID).fromMain.add(communication);//把一个serverSocket接到的线程信息转给另外一个		   
+			   ThreadCommu communication=tmp.toC1.poll();
+			   servList.get(communication.toID).toC2.add(communication);//把一个serverSocket接到的线程信息转给另外一个		   
 		   }
 		   }
 		   listen.close();
-		   servList.get(0).close();
-		   servList.get(1).close();
+		   //servList.get(0).close();
+		   //servList.get(1).close();
 		
 	   }
 	   }catch(Exception ioe)
