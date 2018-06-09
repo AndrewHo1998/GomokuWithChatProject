@@ -1,5 +1,8 @@
 package server;
-//éœ€è¦æµ‹è¯•ï¼
+
+
+//»¹ĞèÒª£ºÈÃÖ÷Ïß³Ì½«²»Í¬socket½ø³ÌÖ®¼äµÄĞÅÏ¢·¢ËÍµ½ÕıÈ·µÄserver socket
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,27 +21,31 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.SynchronousQueue; 
 
-final int port=9000;
-class ThreadCommu//è¿›ç¨‹é—´ä¿¡æ¯äº¤æ¢
+
+class ThreadCommu//½ø³Ì¼äĞÅÏ¢½»»»
 {
 	
-	int toID; //å‘é€ç»™è°
-	String context; //å†…å®¹
-	char[] flag=new char[2]; //æŠ¥æ–‡ç±»åˆ«
+	int toID; //·¢ËÍ¸øË­
+	String context; //ÄÚÈİ
+	char[] flag=new char[2]; //±¨ÎÄÀà±ğ
 	
 	public ThreadCommu()
 	{
 		
 	}
 	
-	public void writeCommu(int to, byte[]buffer) //å†™
+	public void writeCommu(int to, byte[]buffer) //Ğ´
 	{
 			this.toID=to;
-			context=buffer.toString();		
+			context=new String();
+			for(int i=0;i<buffer.length;i++)
+				context=context+buffer[i];
+
 	}
-	public void readCommu(byte[] buffer) //è¯»
+	public void readCommu(byte[] buffer) //¶¼
 	{
-		context=buffer.toString();
+		for(int i=0;i<this.context.length();i++)
+			buffer[i]=(byte)context.charAt(i);
 	}
 }
 
@@ -46,16 +53,16 @@ class myServerThread implements Runnable
 {
     private ServerSocket serv;
     private Socket client=null;
-    public int ServerN=1;
+    public int ServerN=0;
     String clientName;
     byte[] buffer=new byte[200];
-    Queue<ThreadCommu> toMain=new SynchronousQueue<ThreadCommu>(); //å‘Mainè¿›ç¨‹å‘é€è¿›ç¨‹äº¤æµä¿¡æ¯ï¼Œè¿›ç¨‹å®‰å…¨ï¼Œå…ˆè¿›å…ˆå‡º
-    Queue<ThreadCommu> fromMain=new SynchronousQueue<ThreadCommu>(); //Mainå‘æœ¬è¿›ç¨‹çš„ä¿¡æ¯
+    Queue<ThreadCommu> toMain=new SynchronousQueue<ThreadCommu>(); //ÏòMain½ø³Ì·¢ËÍ½ø³Ì½»Á÷ĞÅÏ¢£¬½ø³Ì°²È«£¬ÏÈ½øÏÈ³ö
+    Queue<ThreadCommu> fromMain=new SynchronousQueue<ThreadCommu>(); //MainÏò±¾½ø³ÌµÄĞÅÏ¢
     
     public myServerThread (int listN) throws Exception
     {
     	this.ServerN=listN;
-    	serv=new ServerSocket(9000+listN);//è¿æ¥
+    	serv=new ServerSocket(9000+listN);//Á¬½Ó
     }
     
     public boolean read(byte[] buffer) throws IOException
@@ -63,7 +70,7 @@ class myServerThread implements Runnable
     	InputStream is=this.client.getInputStream();
  
     		is.read(buffer);
-    		if(buffer.length!=0)//æ²¡æœ‰è¯»åˆ°ä¿¡æ¯
+    		if(buffer.length!=0)//Ã»ÓĞ¶Áµ½ĞÅÏ¢
     			return true;
     		else
     			return false;
@@ -83,7 +90,7 @@ class myServerThread implements Runnable
 		{
 		this.client=serv.accept();
 		
-		//å‘Šè¯‰å®¢æˆ·ç«¯å®¢æˆ·ç«¯çš„ç¼–å·
+		//¸æËß¿Í»§¶Ë¿Í»§¶ËµÄ±àºÅ
 		buffer[0]=14& 0xF;
 		buffer[1]=14 & 0xF0;
 		String tmp=String.valueOf(ServerN);
@@ -100,32 +107,42 @@ class myServerThread implements Runnable
 				
 				ThreadCommu commuWithMain=new ThreadCommu();
 				commuWithMain.flag[0]=(char)buffer[0];	commuWithMain.flag[1]=(char)buffer[1];
+				
+				if(ServerN==1)
+					commuWithMain.toID=2;
+				else
+					commuWithMain.toID=1;
+				
 				String context=new String();
 				for(int j=2;j<buffer.length;j++)
 					context=context+buffer[j];
 				
 				commuWithMain.context=context;
-				System.out.println("å†…å®¹ä¸ºï¼š"+context);
-				this.toMain.add(commuWithMain);//è¯»åˆ°ä¿¡æ¯å†™è¿›ç¨‹é€šè®¯
+				this.toMain.add(commuWithMain);//¶Áµ½ĞÅÏ¢Ğ´½ø³ÌÍ¨Ñ¶
 				
 			}
 			for(int i=0;i<fromMain.size();i++)
 			{
 				OutputStream os=client.getOutputStream();
-				fromMain.poll().readCommu(buffer);//ä»mainå¯¹æ­¤è¿›ç¨‹çš„ä¿¡æ¯ä¸­è¯»å–ï¼Œç„¶åå‘é€ç»™client
+				fromMain.poll().readCommu(buffer);//´Ómain¶Ô´Ë½ø³ÌµÄĞÅÏ¢ÖĞ¶ÁÈ¡£¬È»ºó·¢ËÍ¸øclient
 				os.write(buffer);
 				
 			}
 		}
-		//æ­¤æ­¥é˜»å¡çº¿ç¨‹ç­‰å¾…å®¢æˆ·ç«¯è¿æ¥	
+		//´Ë²½×èÈûÏß³ÌµÈ´ı¿Í»§¶ËÁ¬½Ó	
 		}catch (IOException ioe)
 		{
 			System.out.println(ioe.getMessage());
 		}
-	}  
+	}
+	
+
+    
+    
+    
 }
 
-//serverçš„å›¾å½¢ç•Œé¢å…ˆæ”¾å¼ƒäº†.
+//serverµÄÍ¼ĞÎ½çÃæÏÈ·ÅÆúÁË£¡from ÕÂê¿
 
 
 public class server {
@@ -139,7 +156,7 @@ public class server {
 		   myServerThread serv=new myServerThread(i);
 		   servList.add(serv);
 		   serv.run();
-		   //åˆ›å»º2ä¸ªç©ºçš„serverç­‰å¾…è¿æ¥
+		   //´´½¨2¸ö¿ÕµÄserverµÈ´ıÁ¬½Ó
 	   }
 	   while(!listen.isClosed())
 	   {
@@ -148,8 +165,8 @@ public class server {
 		   myServerThread tmp=servList.get(i);
 		   while(!tmp.toMain.isEmpty())
 		   {
-			   ThreadCommu communication=tmp.toMain.poll();//å‡ºé˜Ÿ
-			   servList.get(communication.toID).fromMain.add(communication);//æŠŠä¸€ä¸ªserverSocketæ¥åˆ°çš„çº¿ç¨‹ä¿¡æ¯è½¬ç»™å¦å¤–ä¸€ä¸ª		   
+			   ThreadCommu communication=tmp.toMain.poll();
+			   servList.get(communication.toID).fromMain.add(communication);//°ÑÒ»¸öserverSocket½Óµ½µÄÏß³ÌĞÅÏ¢×ª¸øÁíÍâÒ»¸ö		   
 		   }
 		   }
 	   }
