@@ -1,0 +1,28 @@
+    char[] ConectionEstablished(String clientName, String clientID)
+    {
+    	char[] Buffer=new char[50];
+    	Buffer[0]='E';
+    	clientName.getChars(1, clientName.length(), Buffer, 1);
+    	clientID.getChars(0, clientID.length(), Buffer, 30);
+    	return Buffer;
+    }
+    
+    char[] Disconnection(String clientName, String clientID)
+    {
+    	char[] Buffer=new char[50];
+    	Buffer[0]='D';
+    	clientName.getChars(1, clientName.length(), Buffer, 1);
+    	clientID.getChars(0, clientID.length(), Buffer, 30);
+    	return Buffer;
+    }
+    
+    char[] SendMessage(String toWhom, String context)
+    {
+    	char[] Buffer=new char[200];
+    	Buffer[0]='M';
+    	toWhom.getChars(0, toWhom.length(), Buffer, 1);
+    	if(context.length()>=150)
+    		return null;
+    	context.getChars(0, context.length(), Buffer, 30);
+    	return Buffer;
+    }
