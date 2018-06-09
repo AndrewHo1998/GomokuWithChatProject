@@ -1,52 +1,177 @@
 package Gomoku;
 
 import javax.swing.JOptionPane;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
+import java.util.concurrent.LinkedBlockingDeque;
+
+class ThreadComm//进程间信息交换
+{
+    byte from;
+    int toID; //发送给谁
+    String context; //内容
+    char[] flag = new char[2]; //报文类别
+    
+    
+    public ThreadComm() {
+    
+    }
+    
+    
+    public void writeComm(int to, byte[] buffer) //写
+    {
+        this.toID = to;
+        context = "";
+        for (byte aBuffer : buffer)
+            context = context + aBuffer;
+    }
+    
+    
+    public void readComm(byte[] buffer) //都
+    {
+        for (int i = 0; i < this.context.length(); i++)
+            buffer[i] = (byte) context.charAt(i);
+    }
+}
+
 
 public class Server extends AbstractSocket {
-    private boolean waitingForResponse; // 是否正在等待 client 回应
-    private int waitingForResponseClientId; // 是否正在等待的 client 的 ID （1 或 2）
+    public static final int PORT = 10000;
+    
+    private boolean waitingForResponse; // 是否正在等待 client1 回应
+    private int waitingForResponseClientId; // 是否正在等待的 client1 的 ID （1 或 2）
     private Board board; // 棋盘
     private int player1ClientId; // 玩家 1 的客户端编号（1 或 2）
+    private final LinkedBlockingDeque<byte[]> messageQueue;
+    
+    private final ServerSocket server;
+    private Client client1;
+    private Client client2;
+    
+    
+    public static void main(String[] args) {
+        try {
+            ServerSocket serverSocket = new ServerSocket(PORT);
+            Socket socket1 = new Socket("127.0.0.1", Server.PORT);
+            Socket socket2 = new Socket("127.0.0.1", Server.PORT);
+            
+            Server myServer = new Server(serverSocket);
+        }
+        catch (IOException ignored) {
+        }
+    }
     
     
     // TODO 初始化
-    public Server(/* args */) {
+    public Server(ServerSocket server) {
         super();
         socketId = 0;
         board = new Board();
         waitingForResponse = false;
         waitingForResponseClientId = 0;
         player1ClientId = 0;
+        this.server = server;
+        messageQueue = new LinkedBlockingDeque<byte[]>();
+        System.out.println("Server running on " + server.getLocalPort());
+        try {
+            client1 = new Client(this.server.accept());
+            client1.setClientId(1);
+            System.out.println("client1 running on " + client1.getSocket().getLocalPort());
+            //this.client1=server.
+            client2 = new Client(this.server.accept());
+            client2.setClientId(2);
+            System.out.println("client2 running on " + client2.getSocket().getLocalPort());
+            Thread receiveFromClient1 = new Thread(() -> receiveFromClient(client1));
+            Thread receiveFromClient2 = new Thread(() -> receiveFromClient(client2));
+            receiveFromClient1.start();
+            receiveFromClient2.start();
+        }
+        catch (IOException ignored) {
+        }
+        
+        Thread service = new Thread(() -> {
+            while (true) {
+                if (messageQueue.isEmpty())
+                    continue;
+                else {
+                    byte[] message = messageQueue.pop();
+                    System.out.println(message);
+                    if (waitingForResponse) {
+                        if (waitingForResponseClientId == parseSocketId(message)) {
+                            waitingForResponse = false;
+                            waitingForResponseClientId = 0;
+                            handleMessage(message);
+                        }
+                        else
+                            continue;
+                    }
+                }
+            }
+        });
+        
+        service.start();
     }
     
     
-    /**
-     * 从其他 Socket 接受报文，返回是否接收成功。
-     */
-    @Override
-    public boolean receive() {
-        // TODO 接收消息
-        int clientId = 1; // TODO 从 message 解析 clientId
-        if (waitingForResponse) {
-            if (waitingForResponseClientId == clientId) {
-                waitingForResponse = false; // 不再等待 client 回应
-                waitingForResponseClientId = 0;
+    private void receiveFromClient(Client client) {
+        while (!client.isClosed()) {
+            byte[] headBuffer = new byte[headLength];
+            try {
+                System.out.println("0");
+                InputStream is = client.getInputStream();
+                System.out.println("1");
+                int length = tryRead(is, headBuffer);
+                System.out.println("2");
+                byte[] restBuf = new byte[length];
+                is.read(restBuf);
+                byte[] message = new byte[headBuffer.length + restBuf.length];
+                System.arraycopy(headBuffer, 0, message, 0, headLength);
+                System.arraycopy(restBuf, 0, message, headLength, restBuf.length);
+                messageQueue.add(message);
             }
-            else {
-                // 从错误的 client 接收消息
-                // TODO 错误处理
+            catch (IOException ignored) {
+                System.out.println("exception");
             }
         }
-        // handleMessage(message);
-        return true;
+    }
+    
+    
+    public void sendToClient(int clientId, byte[] message) {
+        try {
+            if (clientId == 1)
+                send(client1.getOutputStream(), message);
+            else
+                send(client2.getOutputStream(), message);
+        }
+        catch (IOException ignored) {
+        }
+    }
+    
+    
+    protected void sendToPlayer(int playerId, byte[] message) {
+        if (playerId == 1)
+            sendToClient(player1ClientId, message);
+        else
+            sendToClient(3 - player1ClientId, message);
+    }
+    
+    
+    public void close() throws IOException {
+        server.close();
+        client1.close();
+        client2.close();
     }
     
     
     /**
-     * server 向双方 client 发送新建游戏命令
+     * server 向双方 client1 发送新建游戏命令
      *
      * @param message 接收到的报文
      *
@@ -59,9 +184,9 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 请求新建游戏，server 直接转发对方 client。
-     * client 弹出窗口，让用户选择是否开始。
-     * server 直接转发对方 client
+     * client1 请求新建游戏，server 直接转发对方 client1。
+     * client1 弹出窗口，让用户选择是否开始。
+     * server 直接转发对方 client1
      *
      * @param message 接收到的报文
      *
@@ -69,35 +194,38 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleInquireToNewGame(byte[] message) {
-        int clientId = parseSocketId(message); // 从 message 解析 clientId
-        waitingForResponse = true; // 等待对方 client 回应
-        waitingForResponseClientId = 3 - clientId; // 对方的 clientId
+        int destClientId = 3 - parseSocketId(message); // 从 message 解析 clientId
+        waitingForResponse = true; // 等待对方 client1 回应
+        waitingForResponseClientId = destClientId; // 对方的 clientId
         byte[] newMessage = packMessage(INQUIRE_TO_NEW_GAME, null);
+        sendToClient(destClientId, newMessage);
         /**
-         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * TODO 直接转发对方 client1（报文头可能需要稍作修改）
          * @messageType INQUIRE_TO_NEW_GAME
          */
     }
     
     
     /**
-     * client 同意新建游戏，server 新建游戏，并向双方 client 发送新建游戏命令。
+     * client1 同意新建游戏，server 新建游戏，并向双方 client1 发送新建游戏命令。
      *
      * @param message 接收到的报文
      *
      * @implNote messageType = ACCEPT_TO_NEW_GAME
-     * @implNote client 不可能接收到这个消息
+     * @implNote client1 不可能接收到这个消息
      */
     @Override
     protected void handleAcceptToNewGame(byte[] message) {
-        // 接收函数已保证从正确的 client 接收消息
+        // 接收函数已保证从正确的 client1 接收消息
         int clientId = parseSocketId(message); // 从 message 解析 clientId
         board.newGame();
         player1ClientId = 3 - clientId; // 请求新建游戏的玩家的编号为 1，同意新建游戏的玩家的编号为 2（就是本函数 message 的来源）。
         byte[] player1Message = packNewGame(1);
         byte[] player2Message = packNewGame(2);
+        sendToPlayer(1, player1Message);
+        sendToPlayer(2, player2Message);
         /**
-         * TODO 向双方 client 发送新建游戏命令
+         * TODO 向双方 client1 发送新建游戏命令
          * @messageType NEW_GAME
          * @messageArg playerNumber 玩家编号
          */
@@ -105,7 +233,7 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 拒绝新建游戏，server 直接转发对方 client。
+     * client1 拒绝新建游戏，server 直接转发对方 client1。
      *
      * @param message 接收到的报文
      *
@@ -113,17 +241,19 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleRejectToNewGame(byte[] message) {
-        // 接收函数已保证从正确的 client 接收消息
+        // 接收函数已保证从正确的 client1 接收消息
+        int destClientId = 3 - parseSocketId(message);
         byte[] newMessage = packMessage(REJECT_TO_NEW_GAME, null);
+        sendToClient(destClientId, newMessage);
         /**
-         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * TODO 直接转发对方 client1（报文头可能需要稍作修改）
          * @messageType REJECT_TO_NEW_GAME
          */
     }
     
     
     /**
-     * server 向双方 client 发送游戏结束命令
+     * server 向双方 client1 发送游戏结束命令
      *
      * @param message 接收到的报文
      *
@@ -136,12 +266,12 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 认输，server 结束游戏，server 接收后向双方 client 发送游戏结束命令。
+     * client1 认输，server 结束游戏，server 接收后向双方 client1 发送游戏结束命令。
      *
      * @param message 接收到的报文
      *
      * @implNote messageType = ADMIT_DEFEAT
-     * @implNote client 不可能接收到这个消息
+     * @implNote client1 不可能接收到这个消息
      */
     @Override
     protected void handleAdmitDefeat(byte[] message) {
@@ -158,8 +288,10 @@ public class Server extends AbstractSocket {
         }
         board.reset();
         byte[] gameOverMessage = packGameOver(winnerNumber, indexOfRowStones, rowStones);
+        sendToClient(1, gameOverMessage);
+        sendToClient(2, gameOverMessage);
         /**
-         * TODO 向双方 client 发送游戏结束命令
+         * TODO 向双方 client1 发送游戏结束命令
          * @messageType GAME_OVER
          * @messageArg winnerNumber     胜者编号
          * @messageArg indexOfRowStones 连珠的棋子编号
@@ -169,7 +301,7 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * server 向双方 client 发送落子命令
+     * server 向双方 client1 发送落子命令
      *
      * @param message 接收到的报文
      *
@@ -182,12 +314,12 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 请求落子，server 进行处理，若可以落子则向双方 client 发送落子命令。
+     * client1 请求落子，server 进行处理，若可以落子则向双方 client1 发送落子命令。
      *
      * @param message 接收到的报文
      *
      * @implNote messageType = INQUIRE_TO_PUT_STONE
-     * @implNote client 不可能接收到这个消息
+     * @implNote client1 不可能接收到这个消息
      */
     @Override
     protected void handleInquireToPutStone(byte[] message) {
@@ -210,8 +342,10 @@ public class Server extends AbstractSocket {
             Stone stone = board.getLastStone();
             int historySize = board.getHistorySize();
             byte[] putStoneMessage = packPutStone(stone, previousStone, historySize);
+            sendToClient(1, putStoneMessage);
+            sendToClient(2, putStoneMessage);
             /**
-             * TODO 向双方 client 发送落子命令
+             * TODO 向双方 client1 发送落子命令
              * @messageType PUT_STONE
              * @messageArg stone         落子的 stone
              * @messageArg previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
@@ -220,7 +354,7 @@ public class Server extends AbstractSocket {
             
             // 若没有选择玩家颜色
             if (!board.isPlayerColorChosen() && (board.getHistorySize() == 3 || board.getHistorySize() == 5)) {
-                waitingForResponse = true; // 等待 client 回应
+                waitingForResponse = true; // 等待 client1 回应
                 waitingForResponseClientId = 3 - clientId; // 对方的 clientId
             }
             else { // 没有选择玩家颜色不可能出现连珠 所以直接用了 else
@@ -240,9 +374,11 @@ public class Server extends AbstractSocket {
                         winnerNumber = 3 - board.getNextPlayerNumber();
                     else
                         winnerNumber = 0; // 平局
-                    byte[] gameOverMessage = packGameOver(winnerNumber, indexOfRowStones, rowStones));
+                    byte[] gameOverMessage = packGameOver(winnerNumber, indexOfRowStones, rowStones);
+                    sendToClient(1, gameOverMessage);
+                    sendToClient(2, gameOverMessage);
                     /**
-                     * TODO 向双方 client 发送游戏结束命令
+                     * TODO 向双方 client1 发送游戏结束命令
                      * @messageType GAME_OVER
                      * @messageArg winnerNumber     胜者编号
                      * @messageArg indexOfRowStones 连珠的棋子编号
@@ -257,7 +393,7 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * server 向双方 client 发送悔棋命令
+     * server 向双方 client1 发送悔棋命令
      *
      * @param message 接收到的报文
      *
@@ -270,9 +406,9 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 请求悔棋，server 直接转发对方 client。
-     * client 弹出窗口，让用户选择是否同意。
-     * server 直接转发对方 client
+     * client1 请求悔棋，server 直接转发对方 client1。
+     * client1 弹出窗口，让用户选择是否同意。
+     * server 直接转发对方 client1
      *
      * @param message 报文
      *
@@ -280,35 +416,38 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleInquireToRetractStone(byte[] message) {
-        int clientId = parseSocketId(message); // 从 message 解析 clientId
-        waitingForResponse = true; // 等待对方 client 回应
-        waitingForResponseClientId = 3 - clientId; // 对方的 clientId
+        int destClientId = 3 - parseSocketId(message); // 从 message 解析 clientId
+        waitingForResponse = true; // 等待对方 client1 回应
+        waitingForResponseClientId = destClientId; // 对方的 clientId
         byte[] newMessage = packMessage(INQUIRE_TO_RETRACT_STONE, null);
+        sendToClient(destClientId, newMessage);
         /**
-         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * TODO 直接转发对方 client1（报文头可能需要稍作修改）
          * @messageType INQUIRE_TO_RETRACT_STONE
          */
     }
     
     
     /**
-     * client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
+     * client1 同意悔棋，server 悔棋，并向双方 client1 发送悔棋命令。
      *
      * @param message 接收到的报文
      *
      * @implNote messageType = ACCEPT_TO_RETRACT_STONE
-     * @implNote client 不可能接收到这个消息
+     * @implNote client1 不可能接收到这个消息
      */
     @Override
     protected void handleAcceptToRetractStone(byte[] message) {
-        // 接收函数已保证从正确的 client 接收消息
+        // 接收函数已保证从正确的 client1 接收消息
         try {
             Stone stone = board.retractStone();
             Stone previousStone = board.getLastStone();
             int historySize = board.getHistorySize();
             byte[] retractStoneMessage = packRetractStone(stone, previousStone, historySize);
+            sendToClient(1, retractStoneMessage);
+            sendToClient(2, retractStoneMessage);
             /**
-             * TODO 向双方 client 发送悔棋命令
+             * TODO 向双方 client1 发送悔棋命令
              * @messageType RETRACT_STONE
              * @messageArg stone         被移走的 stone
              * @messageArg previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
@@ -321,7 +460,7 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 拒绝悔棋，server 直接转发对方 client。
+     * client1 拒绝悔棋，server 直接转发对方 client1。
      *
      * @param message 接收到的报文
      *
@@ -329,22 +468,24 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleRejectToRetractStone(byte[] message) {
-        // 接收函数已保证从正确的 client 接收消息
+        // 接收函数已保证从正确的 client1 接收消息
+        int destClientId = 3 - parseSocketId(message); // 从 message 解析 clientId
         byte[] newMessage = packMessage(REJECT_TO_RETRACT_STONE, null);
+        sendToClient(destClientId, newMessage);
         /**
-         * TODO 直接转发对方 client（报文头可能需要稍作修改）
+         * TODO 直接转发对方 client1（报文头可能需要稍作修改）
          * @messageType REJECT_TO_RETRACT_STONE
          */
     }
     
     
     /**
-     * client 选择执子颜色
+     * client1 选择执子颜色
      *
      * @param message 接收到的报文
      *
      * @implNote messageType = CHOOSE_PLAYER_COLOR
-     * @implNote client 不可能接收到这个消息
+     * @implNote client1 不可能接收到这个消息
      */
     @Override
     protected void handleChoosePlayerColor(byte[] message) {
@@ -369,8 +510,10 @@ public class Server extends AbstractSocket {
             int presetStoneNumber = board.getHistorySize();
             byte[] player1Message = packSetPlayerColor(player1StoneType, presetStoneNumber);
             byte[] player2Message = packSetPlayerColor(player2StoneType, presetStoneNumber);
+            sendToPlayer(1, player1Message);
+            sendToPlayer(2, player2Message);
             /**
-             * TODO 向双方 client 发送对应的执子颜色
+             * TODO 向双方 client1 发送对应的执子颜色
              * @messageType SET_PLAYER_COLOR
              * @arg playerStoneType   玩家棋子类型
              * @arg presetStoneNumber 预先放置的棋子数
@@ -393,7 +536,7 @@ public class Server extends AbstractSocket {
     
     
     /**
-     * client 发送聊天消息，server 直接转发对方 client。
+     * client1 发送聊天消息，server 直接转发对方 client1。
      *
      * @param message 接收到的报文
      *
@@ -402,10 +545,10 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleChatText(byte[] message) {
         Object[] messageArgs = unpackChoosePlayerColor(message);
-        int clientId = parseSocketId(message);
-        int destClientId = 3 - clientId;
+        int destClientId = 3 - parseSocketId(message); // 从 message 解析 clientId
         String chatText = (String) messageArgs[0];
         byte[] newMessage = packChatText(chatText);
-        // TODO server 直接转发对方 client
+        sendToClient(destClientId, newMessage);
+        // TODO server 直接转发对方 client1
     }
 }

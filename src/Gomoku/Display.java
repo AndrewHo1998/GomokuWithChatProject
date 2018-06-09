@@ -48,7 +48,6 @@ public class Display extends JPanel {
         this.client = client;
         gameStartedChangeSupport = new DataChangeSupport<Boolean>(this, false);
         historySizeChangeSupport = new DataChangeSupport<Integer>(this, 0);
-        reset();
         
         messageLabel = new JLabel("");
         boardBoundXL = x;
@@ -78,6 +77,8 @@ public class Display extends JPanel {
         add(countDown);
         
         timeManager = new TimeManager(countDown, timerPanel);
+    
+        reset();
     }
     
     
@@ -117,6 +118,7 @@ public class Display extends JPanel {
      * @param rowStones        连珠的棋子
      */
     public void gameOver(int winnerNumber, List<Integer> indexOfRowStones, List<Stone> rowStones) {
+        timeManager.OnGameOver();
         reset();
         Graphics2D g2D = (Graphics2D) getGraphics();
         int rowStoneNumber = rowStones.size();
@@ -136,57 +138,65 @@ public class Display extends JPanel {
         JOptionPane.showMessageDialog(this, message, "游戏结束", JOptionPane.INFORMATION_MESSAGE);
     }
     
-    // /**
-    //  * 认输
-    //  */
-    // public void admitDefeat() {
-    //     // TODO 待修改
-    //     gameOver(3 - getNextPlayerNumber());
-    // }
+    
+    /**
+     * 认输
+     */
+    public void admitDefeat() {
+        // TODO 待修改
+        timeManager.OnAdmitDefeat();
+        client.admitDefeat();
+    }
     
     
     /**
      * 选择执子颜色
      */
     public void choosePlayerColor() {
-        if (getHistorySize() == 3 && playerNumber == 2) {
+        timeManager.OnDialog();
+        if (getHistorySize() == 3) {
             String message = "玩家 2 选择执子颜色";
             messageLabel.setText(message);
-            String[] options = {"执黑", "执白", "继续"};
-            int state = JOptionPane.showOptionDialog(this,
-                                                     message,
-                                                     "",
-                                                     JOptionPane.YES_NO_CANCEL_OPTION,
-                                                     JOptionPane.QUESTION_MESSAGE,
-                                                     null,
-                                                     options,
-                                                     options[0]);
-            /**
-             * TODO 向 server 发送按键选择
-             * @messageType CHOOSE_PLAYER_COLOR
-             * @arg state 按键选择
-             */
-            client.choosePlayerColor(state);
+            if (playerNumber == 2) {
+                String[] options = {"执黑", "执白", "继续"};
+                int state = JOptionPane.showOptionDialog(this,
+                                                         message,
+                                                         "",
+                                                         JOptionPane.YES_NO_CANCEL_OPTION,
+                                                         JOptionPane.QUESTION_MESSAGE,
+                                                         null,
+                                                         options,
+                                                         options[0]);
+                /**
+                 * TODO 向 server 发送按键选择
+                 * @messageType CHOOSE_PLAYER_COLOR
+                 * @arg state 按键选择
+                 */
+                client.choosePlayerColor(state);
+            }
         }
-        else if (!isPlayerColorChosen() && getHistorySize() == 5 && playerNumber == 1) {
+        else if (!isPlayerColorChosen() && getHistorySize() == 5) {
             String message = "玩家 1 选择执子颜色";
             messageLabel.setText(message);
-            String[] options = {"执黑", "执白"};
-            int state = JOptionPane.showOptionDialog(this,
-                                                     message,
-                                                     "",
-                                                     JOptionPane.OK_CANCEL_OPTION,
-                                                     JOptionPane.QUESTION_MESSAGE,
-                                                     null,
-                                                     options,
-                                                     options[0]);
-            /**
-             * TODO 向 server 发送按键选择
-             * @messageType CHOOSE_PLAYER_COLOR
-             * @arg state 按键选择
-             */
-            client.choosePlayerColor(state);
+            if (playerNumber == 1) {
+                String[] options = {"执黑", "执白"};
+                int state = JOptionPane.showOptionDialog(this,
+                                                         message,
+                                                         "",
+                                                         JOptionPane.YES_NO_OPTION,
+                                                         JOptionPane.QUESTION_MESSAGE,
+                                                         null,
+                                                         options,
+                                                         options[0]);
+                /**
+                 * TODO 向 server 发送按键选择
+                 * @messageType CHOOSE_PLAYER_COLOR
+                 * @arg state 按键选择
+                 */
+                client.choosePlayerColor(state);
+            }
         }
+        timeManager.OnDialogClose();
     }
     
     
@@ -198,6 +208,7 @@ public class Display extends JPanel {
      * @param historySize   落子完成后棋盘上的棋子数
      */
     public void putStone(Stone stone, Stone previousStone, int historySize) {
+        timeManager.OnPutStone();
         Graphics2D g2D = (Graphics2D) getGraphics();
         if (previousStone != null)
             paintStoneIndex(g2D, previousStone, historySize - 2, false);
@@ -217,6 +228,7 @@ public class Display extends JPanel {
      * @param historySize   悔棋完成后棋盘上的棋子数
      */
     public void retractStone(Stone stone, Stone previousStone, int historySize) {
+        timeManager.OnRetractStone();
         Graphics2D g2D = (Graphics2D) getGraphics();
         eraseStone(g2D, stone.getI(), stone.getJ());
         paintStoneIndex(g2D, previousStone, historySize - 1, true);

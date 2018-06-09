@@ -61,13 +61,13 @@ public class Gomoku extends JFrame {
     // TODO 待修改
     private void initActionListeners() {
         retractButton.setEnabled(false);
-        // newGameButton.addActionListener(e -> {
-        //     if (!display.isGameStarted())
-        //         client.inquireToNewGame();
-        //     else
-        //         client.admitDefeat();
-        // });
-        // retractButton.addActionListener(e -> client.inquireToRetractStone());
+        newGameButton.addActionListener(e -> {
+            if (!display.isGameStarted())
+                client.inquireToNewGame();
+            else
+                client.admitDefeat();
+        });
+        retractButton.addActionListener(e -> client.inquireToRetractStone());
         showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
         sendButton.addActionListener(e -> {
             chatPanel.setText(chatPanel.getText().trim() + '\n' + chatTextField.getText().trim());

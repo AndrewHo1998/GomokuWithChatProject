@@ -1,10 +1,14 @@
 package Gomoku;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractSocket extends Socket {
+public abstract class AbstractSocket {
     protected int socketId; // socket 编号
     public static final int headLength = 6;
     public static final int NEW_GAME = 0;                  // server 向双方 client 发送新建游戏命令
@@ -34,26 +38,40 @@ public abstract class AbstractSocket extends Socket {
     }
     
     
-    /**
-     * 向其他 Socket 发送报文，返回是否发送成功。
-     *
-     * @param message 报文内容
-     */
-    public boolean send(byte[] message) {
-        boolean success = false;
-        // TODO 待修改
-        return success;
+    public int getMessageLength(byte[] head) {
+        return (head[1] << 24) & 0xFF + (head[2] << 16) & 0xFF + (head[3] << 8) & 0xFF + head[3] & 0xFF;
     }
     
     
-    /**
-     * 从其他 Socket 接受报文，返回是否接收成功。
-     */
-    public boolean receive() {
-        boolean success = false;
-        // TODO 待修改
-        // handleMessage(message);
-        return success;
+    public int tryRead(InputStream is, byte[] headBuffer) throws IOException {
+        try {
+            
+            System.out.println("try before read");
+            is.read(headBuffer);
+            // System.out.println(is.readAllBytes());
+            System.out.println("try after read");
+            return getMessageLength(headBuffer);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+    
+    
+    public void send(OutputStream os, byte[] buffer) {
+        while (true) {
+            try {
+                System.out.println("before send " + buffer);
+                os.write(buffer);
+                System.out.println("after send " + buffer);
+                os.flush();
+                break;
+            }
+            catch (IOException ignored) {
+                ignored.printStackTrace();
+            }
+        }
     }
     
     
@@ -83,6 +101,7 @@ public abstract class AbstractSocket extends Socket {
      * @param message 接收到的报文
      */
     protected void handleMessage(byte[] message) {
+        System.out.println(message);
         int messageType = parseMessageType(message);
         switch (messageType) {
             case NEW_GAME:                 // server 向双方 client 发送新建游戏命令

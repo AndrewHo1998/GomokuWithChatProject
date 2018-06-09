@@ -1,23 +1,112 @@
 package Gomoku;
 
 import javax.swing.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.security.AccessController;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class Client extends AbstractSocket {
     private final Gomoku gomoku;
     private Display display;
+    private final Socket client;
+    private final LinkedBlockingDeque<byte[]> messageQueue;
     
     
     // TODO 初始化
-    public Client(/* args */) {
-        socketId = 0;
+    public Client(Socket client) {
+        this.client = client;
         gomoku = new Gomoku(this);
         display = gomoku.getDisplay();
+        messageQueue = new LinkedBlockingDeque<byte[]>();
+        
+        Thread receiveFromServer = new Thread(this::receiveFromServer);
+        
+        Thread service = new Thread(() -> {
+            while (true) {
+                if (messageQueue.isEmpty())
+                    continue;
+                else {
+                    byte[] message = messageQueue.pop();
+                    handleMessage(message);
+                }
+            }
+        });
+        
+        receiveFromServer.start();
+        service.start();
+    }
+    
+    
+    public Socket getSocket() {
+        return client;
+    }
+    
+    
+    public InputStream getInputStream() throws IOException {
+        return client.getInputStream();
+    }
+    
+    
+    public OutputStream getOutputStream() throws IOException {
+        return client.getOutputStream();
+    }
+    
+    
+    public boolean isClosed() {
+        return client.isClosed();
+    }
+    
+    
+    public void close() throws IOException {
+        client.close();
+    }
+    
+    
+    public void sendToServer(byte[] message) {
+        try {
+            send(client.getOutputStream(), message);
+        }
+        catch (IOException ignored) {
+        }
+    }
+    
+    
+    private void receiveFromServer() {
+        while (!client.isClosed()) {
+            byte[] headBuf = new byte[headLength];
+            try {
+                InputStream is = client.getInputStream();
+                int length = tryRead(is, headBuf);
+                System.out.println("Received message from client");
+                byte[] restBuf = new byte[length];
+                is.read(restBuf);
+                byte[] message = new byte[headBuf.length + restBuf.length];
+                System.arraycopy(headBuf, 0, message, 0, headLength);
+                System.arraycopy(restBuf, 0, message, headLength, restBuf.length);
+                messageQueue.add(message);
+            }
+            catch (IOException ignored) {
+            }
+        }
+    }
+    
+    
+    public void setClientId(int clientId) {
+        socketId = clientId;
+        gomoku.setTitle("五子棋 " + clientId);
     }
     
     
     /**
+     * /**
      * server 向双方 client 发送新建游戏命令
      *
      * @param message 接收到的报文
@@ -43,7 +132,17 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleInquireToNewGame(byte[] message) {
-    
+        String[] options = {"同意", "拒绝"};
+        int state = JOptionPane.showOptionDialog(display,
+                                                 "对方请求新建游戏",
+                                                 "",
+                                                 JOptionPane.YES_NO_OPTION,
+                                                 JOptionPane.QUESTION_MESSAGE,
+                                                 null,
+                                                 options,
+                                                 options[0]);
+        byte[] newMessage = packMessage(state == JOptionPane.YES_OPTION ? ACCEPT_TO_NEW_GAME : REJECT_TO_NEW_GAME, null);
+        sendToServer(newMessage);
     }
     
     
@@ -57,7 +156,6 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleAcceptToNewGame(byte[] message) {
-    
     }
     
     
@@ -70,7 +168,6 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRejectToNewGame(byte[] message) {
-    
     }
     
     
@@ -231,6 +328,36 @@ public class Client extends AbstractSocket {
     @Override
     protected void handleChatText(byte[] message) {
         // TODO
+    }
+    
+    
+    public void inquireToNewGame() {
+        byte[] message = packMessage(INQUIRE_TO_NEW_GAME, null);
+        sendToServer(message);
+    }
+    
+    
+    public void admitDefeat() {
+        byte[] message = packMessage(ADMIT_DEFEAT, null);
+        sendToServer(message);
+    }
+    
+    
+    public void inquireToPutStone(int i, int j) {
+        byte[] message = packInquireToPutStone(i, j);
+        sendToServer(message);
+    }
+    
+    
+    public void choosePlayerColor(int state) {
+        byte[] message = packChoosePlayerColor(state);
+        sendToServer(message);
+    }
+    
+    
+    public void inquireToRetractStone() {
+        byte[] message = packMessage(INQUIRE_TO_RETRACT_STONE, null);
+        sendToServer(message);
     }
 }
 

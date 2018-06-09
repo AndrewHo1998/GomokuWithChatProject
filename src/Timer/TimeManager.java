@@ -36,7 +36,7 @@ public class TimeManager {
     }
     
     
-    public void OnRemoveStone() {
+    public void OnRetractStone() {
         countDown.stop();
         countDown.start();
     }
