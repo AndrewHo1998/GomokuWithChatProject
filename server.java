@@ -51,18 +51,22 @@ class ThreadCommu//进程间信息交换
 
 class myServerThread implements Runnable
 {
-    private ServerSocket serv;
-    private Socket client=null;
+    //private Socket serv;
+	private ServerSocket serv;
+    private Socket client;
     public int ServerN=0;
     String clientName;
     byte[] buffer=new byte[200];
     Queue<ThreadCommu> toMain=new SynchronousQueue<ThreadCommu>(); //向Main进程发送进程交流信息，进程安全，先进先出
     Queue<ThreadCommu> fromMain=new SynchronousQueue<ThreadCommu>(); //Main向本进程的信息
     
-    public myServerThread (int listN) throws Exception
+    public myServerThread (int listN, ServerSocket servMain) throws Exception
     {
     	this.ServerN=listN;
-    	serv=new ServerSocket(9001+listN);//连接
+    	this.serv=servMain;
+    	this.client=new Socket();
+    	//连接
+    	System.out.println("Socket established."+listN);
     }
     
     public void setFrom(byte firstBy, ThreadCommu commu)
@@ -104,7 +108,7 @@ class myServerThread implements Runnable
     }
     public void close() throws IOException
     {
-    	this.serv.close();
+    	this.client.close();
     }
 	@Override
 	public void run() {
@@ -112,8 +116,10 @@ class myServerThread implements Runnable
 		
 		try
 		{
-			System.out.println("Server running on "+serv.getLocalPort());
-			this.client=serv.accept();
+			//System.out.println("Server running on "+client.getLocalPort());
+			client=serv.accept();
+			System.out.println("Server running on "+client.getLocalPort());
+			//this.client=serv.
 		
 		//告诉客户端客户端的编号
 		buffer[0]=0x0;//来自server
@@ -186,7 +192,7 @@ public class server {
 	   ServerSocket listen=new ServerSocket(9001);
 	   for(int i=0;i<2;i++)
 	   {
-		   myServerThread serv=new myServerThread(i);
+		   myServerThread serv=new myServerThread(i,listen);
 		   servList.add(serv);
 		   serv.run();
 		   //创建2个空的server等待连接
