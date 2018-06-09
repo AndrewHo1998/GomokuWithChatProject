@@ -9,15 +9,18 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+import Chat.ChatPanel;
+
 public class Gomoku extends JFrame {
     private final Client client;
     private final Display display;
     private final JButton retractButton;
     private final JButton newGameButton;
     private final JButton showRuleButton;
-    private final JTextArea chatTextArea;
+    private final JTextArea chatPanel;
     private final JTextField chatTextField;
     private final JButton sendButton;
+    
     public static final String swap2Rule = "一. 假先方在棋盘任意下三手（二黑一白），假后方有三种选择：\n" +
                                            "     1. 选黑。\n" +
                                            "     2. 选白。\n" +
@@ -25,6 +28,11 @@ public class Gomoku extends JFrame {
                                            "二. 黑白双方轮流落子。\n" +
                                            "三. 首选在横、竖、斜方向上成五（连续五个己方棋子）者为胜。\n" +
                                            "四. 超过五子以上不算赢也不算输。";
+    
+    
+    public static void main(String[] args) {
+        Gomoku gomoku = new Gomoku(null);
+    }
     
     
     public Gomoku(Client client) {
@@ -37,7 +45,7 @@ public class Gomoku extends JFrame {
         newGameButton = new JButton("新游戏");
         retractButton = new JButton("悔棋");
         showRuleButton = new JButton("游戏规则");
-        chatTextArea = new JTextArea("这里是聊天记录窗口");
+        chatPanel = new JTextArea("这里是聊天记录窗口");
         chatTextField = new JTextField("这里是聊天发送窗口");
         sendButton = new JButton("发送");
         
@@ -53,16 +61,16 @@ public class Gomoku extends JFrame {
     // TODO 待修改
     private void initActionListeners() {
         retractButton.setEnabled(false);
-        newGameButton.addActionListener(e -> {
-            if (!display.isGameStarted())
-                client.inquireToNewGame();
-            else
-                client.admitDefeat();
-        });
-        retractButton.addActionListener(e -> client.inquireToRetractStone());
+        // newGameButton.addActionListener(e -> {
+        //     if (!display.isGameStarted())
+        //         client.inquireToNewGame();
+        //     else
+        //         client.admitDefeat();
+        // });
+        // retractButton.addActionListener(e -> client.inquireToRetractStone());
         showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
         sendButton.addActionListener(e -> {
-            chatTextArea.setText(chatTextArea.getText().trim() + '\n' + chatTextField.getText().trim());
+            chatPanel.setText(chatPanel.getText().trim() + '\n' + chatTextField.getText().trim());
             chatTextField.setText("");
         });
         display.addGameStartedChangeListener(evt -> {
@@ -113,13 +121,13 @@ public class Gomoku extends JFrame {
         newGameButton.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 2 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
         retractButton.setBounds(display.getBoardBoundXR() + 6 * Display.sideLength, display.getBoardBoundYU() + 2 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
         showRuleButton.setBounds(display.getBoardBoundXR() + 10 * Display.sideLength, display.getBoardBoundYU() + 2 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
-        chatTextArea.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 4 * Display.sideLength + Display.sideLength / 2, 12 * Display.sideLength, 8 * Display.sideLength);
+        chatPanel.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 4 * Display.sideLength + Display.sideLength / 2, 12 * Display.sideLength, 8 * Display.sideLength);
         chatTextField.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 13 * Display.sideLength, 10 * Display.sideLength, Display.sideLength);
         sendButton.setBounds(display.getBoardBoundXR() + 12 * Display.sideLength, display.getBoardBoundYU() + 13 * Display.sideLength, 2 * Display.sideLength, Display.sideLength);
         display.add(newGameButton);
         display.add(retractButton);
         display.add(showRuleButton);
-        display.add(chatTextArea);
+        display.add(chatPanel);
         display.add(chatTextField);
         display.add(sendButton);
         

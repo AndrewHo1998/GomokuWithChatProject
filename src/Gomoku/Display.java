@@ -216,8 +216,9 @@ class Display extends JPanel {
         try {
             int i = getIFromX(x), j = getJFromY(y);
             int xGrid = getXFromI(i), yGrid = getYFromJ(j);
-            if ((x - xGrid) * (x - xGrid) + (y - yGrid) * (y - yGrid) < stoneRadius * stoneRadius)
+            if ((x - xGrid) * (x - xGrid) + (y - yGrid) * (y - yGrid) < stoneRadius * stoneRadius) {
                 client.inquireToPutStone(i, j);
+            }
         }
         catch (StoneOutOfBoardRangeException ignored) {
         }

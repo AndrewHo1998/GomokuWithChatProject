@@ -15,6 +15,7 @@ public class Server extends AbstractSocket {
     // TODO 初始化
     public Server(/* args */) {
         super();
+        socketId = 0;
         board = new Board();
         waitingForResponse = false;
         waitingForResponseClientId = 0;
@@ -53,7 +54,7 @@ public class Server extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleNewGame(String message) {
+    protected void handleNewGame(byte[] message) {
     }
     
     
@@ -67,7 +68,7 @@ public class Server extends AbstractSocket {
      * @implNote messageType = INQUIRE_TO_NEW_GAME
      */
     @Override
-    protected void handleInquireToNewGame(String message) {
+    protected void handleInquireToNewGame(byte[] message) {
         int clientId = 1; // TODO 从 message 解析 clientId
         waitingForResponse = true; // 等待对方 client 回应
         waitingForResponseClientId = 3 - clientId; // 对方的 clientId
@@ -87,7 +88,7 @@ public class Server extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleAcceptToNewGame(String message) {
+    protected void handleAcceptToNewGame(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
         int clientId = 1; // TODO 从 message 解析 clientId
         board.newGame();
@@ -108,7 +109,7 @@ public class Server extends AbstractSocket {
      * @implNote messageType = REJECT_TO_NEW_GAME
      */
     @Override
-    protected void handleRejectToNewGame(String message) {
+    protected void handleRejectToNewGame(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
         /**
          * TODO 直接转发对方 client（报文头可能需要稍作修改）
@@ -126,7 +127,7 @@ public class Server extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleGameOver(String message) {
+    protected void handleGameOver(byte[] message) {
     }
     
     
@@ -139,7 +140,7 @@ public class Server extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleAdmitDefeat(String message) {
+    protected void handleAdmitDefeat(byte[] message) {
         int clientId = 1; // TODO 从 message 解析 clientId
         int winnerNumber = (clientId == player1ClientId ? 2 : 1);
         List<Integer> indexOfRowStones = board.getIndexOfRowStones();
@@ -171,7 +172,7 @@ public class Server extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handlePutStone(String message) {
+    protected void handlePutStone(byte[] message) {
     }
     
     
@@ -184,7 +185,7 @@ public class Server extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleInquireToPutStone(String message) {
+    protected void handleInquireToPutStone(byte[] message) {
         int clientId = 1; // TODO 从 message 解析 clientId
         int playerNumber = (clientId == player1ClientId ? 1 : 2);
         if (playerNumber != board.getNextPlayerNumber())
@@ -256,7 +257,7 @@ public class Server extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleRetractStone(String message) {
+    protected void handleRetractStone(byte[] message) {
     }
     
     
@@ -270,7 +271,7 @@ public class Server extends AbstractSocket {
      * @implNote messageType = INQUIRE_TO_RETRACT_STONE
      */
     @Override
-    protected void handleInquireToRetractStone(String message) {
+    protected void handleInquireToRetractStone(byte[] message) {
         int clientId = 1; // TODO 从 message 解析 clientId
         waitingForResponse = true; // 等待对方 client 回应
         waitingForResponseClientId = 3 - clientId; // 对方的 clientId
@@ -290,7 +291,7 @@ public class Server extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleAcceptToRetractStone(String message) {
+    protected void handleAcceptToRetractStone(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
         try {
             Stone stone = board.retractStone();
@@ -317,7 +318,7 @@ public class Server extends AbstractSocket {
      * @implNote messageType = REJECT_TO_RETRACT_STONE
      */
     @Override
-    protected void handleRejectToRetractStone(String message) {
+    protected void handleRejectToRetractStone(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
         /**
          * TODO 直接转发对方 client（报文头可能需要稍作修改）
@@ -335,7 +336,7 @@ public class Server extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleChoosePlayerColor(String message) {
+    protected void handleChoosePlayerColor(byte[] message) {
         int state = 0; // TODO 从 message 解析 state （按钮按键）（0执黑 1执白 2继续）
         if (board.getHistorySize() == 3) {
             if (state == JOptionPane.YES_OPTION)
@@ -373,6 +374,6 @@ public class Server extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleSetPlayerColor(String message) {
+    protected void handleSetPlayerColor(byte[] message) {
     }
 }

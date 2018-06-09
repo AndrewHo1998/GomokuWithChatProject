@@ -11,6 +11,7 @@ public class Client extends AbstractSocket {
     
     // TODO 初始化
     public Client(/* args */) {
+        socketId = 0;
         gomoku = new Gomoku(this);
         display = gomoku.getDisplay();
     }
@@ -25,7 +26,7 @@ public class Client extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleNewGame(String message) {
+    protected void handleNewGame(byte[] message) {
         int playerNumber = 1; // TODO 从 message 解析 playerNumber
         display.newGame(playerNumber);
     }
@@ -41,7 +42,7 @@ public class Client extends AbstractSocket {
      * @implNote messageType = INQUIRE_TO_NEW_GAME
      */
     @Override
-    protected void handleInquireToNewGame(String message) {
+    protected void handleInquireToNewGame(byte[] message) {
     
     }
     
@@ -55,7 +56,7 @@ public class Client extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleAcceptToNewGame(String message) {
+    protected void handleAcceptToNewGame(byte[] message) {
     
     }
     
@@ -68,7 +69,7 @@ public class Client extends AbstractSocket {
      * @implNote messageType = REJECT_TO_NEW_GAME
      */
     @Override
-    protected void handleRejectToNewGame(String message) {
+    protected void handleRejectToNewGame(byte[] message) {
     
     }
     
@@ -82,7 +83,7 @@ public class Client extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleGameOver(String message) {
+    protected void handleGameOver(byte[] message) {
         int winnerNumber = 1; // TODO 从 message 解析 (winnerNumber, indexOfRowStones, rowStones)
         List<Integer> indexOfRowStones = new ArrayList<Integer>();
         List<Stone> rowStones = new ArrayList<Stone>();
@@ -99,7 +100,7 @@ public class Client extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleAdmitDefeat(String message) {
+    protected void handleAdmitDefeat(byte[] message) {
     }
     
     
@@ -112,7 +113,7 @@ public class Client extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handlePutStone(String message) {
+    protected void handlePutStone(byte[] message) {
         Stone stone = null; // TODO 从 message 解析 (stone, previousStone, historySize)
         Stone previousStone = null;
         int historySize = 0;
@@ -129,7 +130,7 @@ public class Client extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleInquireToPutStone(String message) {
+    protected void handleInquireToPutStone(byte[] message) {
     }
     
     
@@ -142,7 +143,7 @@ public class Client extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleRetractStone(String message) {
+    protected void handleRetractStone(byte[] message) {
         Stone stone = null; // TODO 从 message 解析 (stone, previousStone, historySize)
         Stone previousStone = null;
         int historySize = 0;
@@ -160,7 +161,7 @@ public class Client extends AbstractSocket {
      * @implNote messageType = INQUIRE_TO_RETRACT_STONE
      */
     @Override
-    protected void handleInquireToRetractStone(String message) {
+    protected void handleInquireToRetractStone(byte[] message) {
     
     }
     
@@ -174,7 +175,7 @@ public class Client extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleAcceptToRetractStone(String message) {
+    protected void handleAcceptToRetractStone(byte[] message) {
     }
     
     
@@ -186,7 +187,7 @@ public class Client extends AbstractSocket {
      * @implNote messageType = REJECT_TO_RETRACT_STONE
      */
     @Override
-    protected void handleRejectToRetractStone(String message) {
+    protected void handleRejectToRetractStone(byte[] message) {
     
     }
     
@@ -200,7 +201,7 @@ public class Client extends AbstractSocket {
      * @implNote client 不可能接收到这个消息
      */
     @Override
-    protected void handleChoosePlayerColor(String message) {
+    protected void handleChoosePlayerColor(byte[] message) {
     }
     
     
@@ -213,7 +214,7 @@ public class Client extends AbstractSocket {
      * @implNote server 不可能接收到这个消息
      */
     @Override
-    protected void handleSetPlayerColor(String message) {
+    protected void handleSetPlayerColor(byte[] message) {
         StoneType playerStoneType = StoneType.BLACK; // TODO 从 message 解析 (playerStoneType, playerNumber)
         int presetStoneNumber = 5;
         display.setPlayerStoneType(playerStoneType, presetStoneNumber);
