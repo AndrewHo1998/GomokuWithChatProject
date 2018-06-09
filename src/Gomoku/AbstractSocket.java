@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractSocket extends Socket {
-    protected int socketId;
+    protected int socketId; // socket 编号
     public static final int headLength = 6;
     public static final int NEW_GAME = 0;                  // server 向双方 client 发送新建游戏命令
     public static final int INQUIRE_TO_NEW_GAME = 1;       // client 请求新建游戏，server 直接转发对方 client。
@@ -64,6 +64,16 @@ public abstract class AbstractSocket extends Socket {
      */
     protected static int parseMessageType(byte[] message) {
         return message[headLength - 1];
+    }
+    
+    
+    /**
+     * 解析报文的源 Socket 编号
+     *
+     * @param message 接收到的报文
+     */
+    protected static int parseSocketId(byte[] message) {
+        return message[0];
     }
     
     
@@ -344,9 +354,13 @@ public abstract class AbstractSocket extends Socket {
         message[0] = (byte) stone.getI();
         message[1] = (byte) stone.getJ();
         message[2] = (byte) (stone.getType() == StoneType.BLACK ? 1 : 2);
-        message[3] = (byte) previousStone.getI();
-        message[4] = (byte) previousStone.getJ();
-        message[5] = (byte) (previousStone.getType() == StoneType.BLACK ? 1 : 2);
+        if (previousStone != null) {
+            message[3] = (byte) previousStone.getI();
+            message[4] = (byte) previousStone.getJ();
+            message[5] = (byte) (previousStone.getType() == StoneType.BLACK ? 1 : 2);
+        }
+        else
+            message[3] = message[4] = message[5] = 0;
         message[6] = (byte) historySize;
         return packMessage(PUT_STONE, message);
     }
@@ -362,6 +376,19 @@ public abstract class AbstractSocket extends Socket {
         }
         int historySize = message[headLength + 6];
         return new Object[]{stone, previousStone, historySize};
+    }
+    
+    
+    protected byte[] packInquireToPutStone(int i, int j) {
+        byte[] message = {(byte) i, (byte) j};
+        return packMessage(INQUIRE_TO_PUT_STONE, message);
+    }
+    
+    
+    protected Object[] unpackInquireToPutStone(byte[] message) {
+        int i = message[headLength];
+        int j = message[headLength + 1];
+        return new Object[]{i, j};
     }
     
     
@@ -402,14 +429,14 @@ public abstract class AbstractSocket extends Socket {
     }
     
     
-    protected byte[] packChatText(String text) {
-        return packMessage(CHAT_TEXT, text.getBytes());
+    protected byte[] packChatText(String chatText) {
+        return packMessage(CHAT_TEXT, chatText.getBytes());
     }
     
     
     protected Object[] unpackChatText(byte[] message) {
-        String text = new String(message, headLength, message.length - headLength);
-        return new Object[]{text};
+        String chatText = new String(message, headLength, message.length - headLength);
+        return new Object[]{chatText};
     }
 }
 

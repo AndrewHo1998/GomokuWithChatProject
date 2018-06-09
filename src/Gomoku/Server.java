@@ -69,9 +69,10 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleInquireToNewGame(byte[] message) {
-        int clientId = 1; // TODO 从 message 解析 clientId
+        int clientId = parseSocketId(message); // 从 message 解析 clientId
         waitingForResponse = true; // 等待对方 client 回应
         waitingForResponseClientId = 3 - clientId; // 对方的 clientId
+        byte[] newMessage = packMessage(INQUIRE_TO_NEW_GAME, null);
         /**
          * TODO 直接转发对方 client（报文头可能需要稍作修改）
          * @messageType INQUIRE_TO_NEW_GAME
@@ -90,9 +91,11 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleAcceptToNewGame(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
-        int clientId = 1; // TODO 从 message 解析 clientId
+        int clientId = parseSocketId(message); // 从 message 解析 clientId
         board.newGame();
         player1ClientId = 3 - clientId; // 请求新建游戏的玩家的编号为 1，同意新建游戏的玩家的编号为 2（就是本函数 message 的来源）。
+        byte[] player1Message = packNewGame(1);
+        byte[] player2Message = packNewGame(2);
         /**
          * TODO 向双方 client 发送新建游戏命令
          * @messageType NEW_GAME
@@ -111,6 +114,7 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleRejectToNewGame(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
+        byte[] newMessage = packMessage(REJECT_TO_NEW_GAME, null);
         /**
          * TODO 直接转发对方 client（报文头可能需要稍作修改）
          * @messageType REJECT_TO_NEW_GAME
@@ -141,7 +145,7 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleAdmitDefeat(byte[] message) {
-        int clientId = 1; // TODO 从 message 解析 clientId
+        int clientId = parseSocketId(message); // 从 message 解析 clientId
         int winnerNumber = (clientId == player1ClientId ? 2 : 1);
         List<Integer> indexOfRowStones = board.getIndexOfRowStones();
         List<Stone> rowStones = new ArrayList<Stone>();
@@ -153,6 +157,7 @@ public class Server extends AbstractSocket {
             }
         }
         board.reset();
+        byte[] gameOverMessage = packGameOver(winnerNumber, indexOfRowStones, rowStones);
         /**
          * TODO 向双方 client 发送游戏结束命令
          * @messageType GAME_OVER
@@ -186,13 +191,14 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleInquireToPutStone(byte[] message) {
-        int clientId = 1; // TODO 从 message 解析 clientId
+        int clientId = parseSocketId(message); // 从 message 解析 clientId
         int playerNumber = (clientId == player1ClientId ? 1 : 2);
         if (playerNumber != board.getNextPlayerNumber())
             return;
+        Object[] messageArgs = unpackInquireToPutStone(message);
         try {
-            int i = 0; // TODO 从 message 解析 (i, j)
-            int j = 0;
+            int i = (Integer) messageArgs[0]; // 从 message 解析 (i, j)
+            int j = (Integer) messageArgs[1];
             Stone previousStone;
             try {
                 previousStone = board.getLastStone();
@@ -203,6 +209,7 @@ public class Server extends AbstractSocket {
             board.putStone(i, j);
             Stone stone = board.getLastStone();
             int historySize = board.getHistorySize();
+            byte[] putStoneMessage = packPutStone(stone, previousStone, historySize);
             /**
              * TODO 向双方 client 发送落子命令
              * @messageType PUT_STONE
@@ -233,6 +240,7 @@ public class Server extends AbstractSocket {
                         winnerNumber = 3 - board.getNextPlayerNumber();
                     else
                         winnerNumber = 0; // 平局
+                    byte[] gameOverMessage = packGameOver(winnerNumber, indexOfRowStones, rowStones));
                     /**
                      * TODO 向双方 client 发送游戏结束命令
                      * @messageType GAME_OVER
@@ -272,9 +280,10 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleInquireToRetractStone(byte[] message) {
-        int clientId = 1; // TODO 从 message 解析 clientId
+        int clientId = parseSocketId(message); // 从 message 解析 clientId
         waitingForResponse = true; // 等待对方 client 回应
         waitingForResponseClientId = 3 - clientId; // 对方的 clientId
+        byte[] newMessage = packMessage(INQUIRE_TO_RETRACT_STONE, null);
         /**
          * TODO 直接转发对方 client（报文头可能需要稍作修改）
          * @messageType INQUIRE_TO_RETRACT_STONE
@@ -297,6 +306,7 @@ public class Server extends AbstractSocket {
             Stone stone = board.retractStone();
             Stone previousStone = board.getLastStone();
             int historySize = board.getHistorySize();
+            byte[] retractStoneMessage = packRetractStone(stone, previousStone, historySize);
             /**
              * TODO 向双方 client 发送悔棋命令
              * @messageType RETRACT_STONE
@@ -320,6 +330,7 @@ public class Server extends AbstractSocket {
     @Override
     protected void handleRejectToRetractStone(byte[] message) {
         // 接收函数已保证从正确的 client 接收消息
+        byte[] newMessage = packMessage(REJECT_TO_RETRACT_STONE, null);
         /**
          * TODO 直接转发对方 client（报文头可能需要稍作修改）
          * @messageType REJECT_TO_RETRACT_STONE
@@ -337,7 +348,8 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleChoosePlayerColor(byte[] message) {
-        int state = 0; // TODO 从 message 解析 state （按钮按键）（0执黑 1执白 2继续）
+        Object[] messageArgs = unpackChoosePlayerColor(message);
+        int state = (Integer) messageArgs[0]; // 从 message 解析 state （按钮按键）（0执黑 1执白 2继续）
         if (board.getHistorySize() == 3) {
             if (state == JOptionPane.YES_OPTION)
                 board.choosePlayer1Color(StoneType.WHITE);
@@ -355,6 +367,8 @@ public class Server extends AbstractSocket {
             StoneType player1StoneType = board.getPlayer1StoneType();
             StoneType player2StoneType = (player1StoneType == StoneType.BLACK ? StoneType.WHITE : StoneType.BLACK);
             int presetStoneNumber = board.getHistorySize();
+            byte[] player1Message = packSetPlayerColor(player1StoneType, presetStoneNumber);
+            byte[] player2Message = packSetPlayerColor(player2StoneType, presetStoneNumber);
             /**
              * TODO 向双方 client 发送对应的执子颜色
              * @messageType SET_PLAYER_COLOR
@@ -387,6 +401,11 @@ public class Server extends AbstractSocket {
      */
     @Override
     protected void handleChatText(byte[] message) {
+        Object[] messageArgs = unpackChoosePlayerColor(message);
+        int clientId = parseSocketId(message);
+        int destClientId = 3 - clientId;
+        String chatText = (String) messageArgs[0];
+        byte[] newMessage = packChatText(chatText);
         // TODO server 直接转发对方 client
     }
 }
