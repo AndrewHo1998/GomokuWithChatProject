@@ -9,7 +9,9 @@ import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 
-class Display extends JPanel {
+import Timer.*;
+
+public class Display extends JPanel {
     private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
     private final int[] stoneCenterX;
     private final int[] stoneCenterY;
@@ -20,6 +22,9 @@ class Display extends JPanel {
     private int presetStoneNumber; // 预先放置的棋子数
     private StoneType playerStoneType; // 本方玩家执子颜色
     private int playerNumber; // 本方玩家号
+    private final TimerPanel timerPanel;
+    private final CountDown countDown;
+    private final TimeManager timeManager;
     
     public static final int sideLength = 40;
     public static final int starRadius = 5;
@@ -62,6 +67,17 @@ class Display extends JPanel {
         messageLabel.setBounds(boardBoundXR + 7 * sideLength / 2, boardBoundYU, 7 * sideLength, sideLength);
         messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
         add(messageLabel);
+        
+        timerPanel = new TimerPanel(4 * Display.sideLength, 2 * Display.sideLength);
+        timerPanel.setBounds(boardBoundXR + 10 * Display.sideLength, boardBoundYU + 14 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
+        add(timerPanel);
+        
+        countDown = new CountDown(2 * Display.sideLength, 2 * Display.sideLength);
+        countDown.setBounds(boardBoundXR + 12 * Display.sideLength, boardBoundYU - Display.sideLength, 2 * Display.sideLength, 2 * Display.sideLength);
+        countDown.setDisplay(this);
+        add(countDown);
+        
+        timeManager = new TimeManager(countDown, timerPanel);
     }
     
     
@@ -77,6 +93,7 @@ class Display extends JPanel {
         Graphics2D g2D = (Graphics2D) getGraphics();
         paintBoard(g2D);
         paintPlayer(g2D);
+        timeManager.OnNewGame();
     }
     
     
@@ -88,6 +105,7 @@ class Display extends JPanel {
         gameStartedChangeSupport.setValue(false);
         presetStoneNumber = 5;
         playerStoneType = StoneType.SPACE;
+        timeManager.OnReset();
     }
     
     
@@ -222,6 +240,11 @@ class Display extends JPanel {
         }
         catch (StoneOutOfBoardRangeException ignored) {
         }
+    }
+    
+    
+    public int getPlayerNumber() {
+        return playerNumber;
     }
     
     

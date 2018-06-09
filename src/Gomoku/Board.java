@@ -72,7 +72,7 @@ class Stone {
 }
 
 
-class Board {
+public class Board {
     private final StoneType[][] board;
     private final Stack<Stone> history;
     private StoneType player1StoneType;
