@@ -1,3 +1,4 @@
+
 /**
  * @author 潘学海
  */
@@ -18,6 +19,7 @@ public class Gomoku extends JFrame {
     private final JTextArea chatTextArea;
     private final JTextField chatTextField;
     private final JButton sendButton;
+
     
     public static final String swap2Rule = "一. 假先方在棋盘任意下三手（二黑一白），假后方有三种选择：\n" +
                                            "     1. 选黑。\n" +
@@ -32,6 +34,7 @@ public class Gomoku extends JFrame {
         super("五子棋");
         board = new Board();
         display = new Display(60, 60, board);
+        
         setContentPane(display);
         
         newGameButton = new JButton("新游戏");
@@ -48,10 +51,13 @@ public class Gomoku extends JFrame {
         showRuleButton.setFont(font);
         
         newGameButton.addActionListener(e -> {
-            if (!board.isGameStarted())
-                display.newGame();
-            else
-                display.admitDefeat();
+            if (!board.isGameStarted()) {
+            	display.newGame();
+            }        
+            else {
+            	display.admitDefeat();    	 
+            }
+               
         });
         retractButton.addActionListener(e -> display.removeStone());
         showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
@@ -76,6 +82,7 @@ public class Gomoku extends JFrame {
         chatTextArea.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 4 * Display.sideLength + Display.sideLength / 2, 12 * Display.sideLength, 8 * Display.sideLength);
         chatTextField.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 13 * Display.sideLength, 10 * Display.sideLength, Display.sideLength);
         sendButton.setBounds(display.getBoardBoundXR() + 12 * Display.sideLength, display.getBoardBoundYU() + 13 * Display.sideLength, 2 * Display.sideLength, Display.sideLength);
+        
         display.add(newGameButton);
         display.add(retractButton);
         display.add(showRuleButton);

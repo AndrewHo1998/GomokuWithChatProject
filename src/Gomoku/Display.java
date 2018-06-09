@@ -18,6 +18,7 @@ class Display extends JPanel {
     private final int[] stoneCenterY;
     private final Board board;
     private final JLabel messageLabel;
+    private final TimerPanel timerPanel;
     private final List<Integer> indexOfHighlightedStones;
     
     public static final int sideLength = 40;
@@ -51,19 +52,26 @@ class Display extends JPanel {
         messageLabel.setBounds(boardBoundXR + 7 * sideLength / 2, boardBoundYU, 7 * sideLength, sideLength);
         messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
         add(messageLabel);
+        
+        timerPanel = new TimerPanel(4*Display.sideLength,2*Display.sideLength);
+        timerPanel.setBounds(getBoardBoundXR() + 10 * Display.sideLength, getBoardBoundYU()+ 14 * Display.sideLength, 4 * Display.sideLength, 2*Display.sideLength);
+        add(timerPanel);    
     }
     
     
     public void newGame() {
+    	timerPanel.stop();
         board.newGame();
         indexOfHighlightedStones.clear();
         Graphics2D g2D = (Graphics2D) getGraphics();
         paintBoard(g2D);
         paintPlayer(g2D);
+        timerPanel.start();
     }
     
     
     public void reset() {
+    	timerPanel.pause();
         board.reset();
         indexOfHighlightedStones.clear();
     }
@@ -93,6 +101,7 @@ class Display extends JPanel {
     
     
     public void admitDefeat() {
+    	timerPanel.pause();
         gameOver(3 - board.getNextPlayerNumber());
     }
     
