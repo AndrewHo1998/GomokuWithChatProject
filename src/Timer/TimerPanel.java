@@ -1,4 +1,4 @@
-package Gomoku;
+package Timer;
 
 import java.awt.Font;
 import java.text.NumberFormat;
@@ -18,7 +18,7 @@ public class TimerPanel extends JPanel{
        this.width = width;
        this.height = height;
        this.setSize(width, height);
-       numberFont= new Font("Consolas", Font.BOLD, height/4);
+       numberFont= new Font("Consolas", Font.PLAIN, 25);
 
         // hour
        labelH=new JLabel("00");
@@ -56,22 +56,21 @@ public class TimerPanel extends JPanel{
         this.setVisible(true);
 
     }
-    public void start() {
+    public void start() {  // start or continue
     	ss=new Start(this);
         ss.start();
     }
     public void pause() {
     	 new Pause(ss).start();
     }
-    public void stop() {
+    public void stop() {  // refresh data
+    	setTime(0,0,0);
+    	showTime();
         new Pause(ss).start();
-        labelS.setText("00");
-        labelM.setText("00");
-        labelH.setText("00");
     }
     public void showTime() {
     	NumberFormat nf = NumberFormat.getInstance();
-        nf.setMinimumIntegerDigits(2) ;     //显示两位数
+        nf.setMinimumIntegerDigits(2) ;     
         this.labelH.setText(nf.format(hour));
         this.labelM.setText(nf.format(min));
         this.labelS.setText(nf.format(sec));
@@ -82,15 +81,6 @@ public class TimerPanel extends JPanel{
     	this.min = m;
     	this.sec = s;
     }
-//    public void setH(int hour) {
-//    	this.hour = hour;
-//    }
-//    public void setM(int min) {
-//    	this.min = min;
-//    }
-//    public void setS(int sec) {
-//    	this.sec = sec;
-//    }
     public int getH() {
     	return hour;
     }
@@ -110,7 +100,7 @@ class Start extends Thread{
     @Override
     public void run() {
         int time_s,time_m,time_h;
-        time_s=tp.getH();
+        time_s=tp.getS();
         time_m=tp.getM();
         time_h=tp.getH();
 
@@ -118,7 +108,7 @@ class Start extends Thread{
             try {
                 Thread.sleep(1000);     
             } catch (InterruptedException e) {
-                break;  //结束线程
+                break;  // break loop
             }
             time_s++;
             if (time_s>=60) {

@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import Timer.TimerPanel;
+import Timer.CountDown;
+import Timer.TimeManager;
 
 class Display extends JPanel {
     private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
@@ -19,6 +22,8 @@ class Display extends JPanel {
     private final Board board;
     private final JLabel messageLabel;
     private final TimerPanel timerPanel;
+    private final CountDown countDown;
+    private final TimeManager timeManager;
     private final List<Integer> indexOfHighlightedStones;
     
     public static final int sideLength = 40;
@@ -55,25 +60,32 @@ class Display extends JPanel {
         
         timerPanel = new TimerPanel(4*Display.sideLength,2*Display.sideLength);
         timerPanel.setBounds(getBoardBoundXR() + 10 * Display.sideLength, getBoardBoundYU()+ 14 * Display.sideLength, 4 * Display.sideLength, 2*Display.sideLength);
-        add(timerPanel);    
+        add(timerPanel); 
+        
+        countDown = new CountDown(2*Display.sideLength,2*Display.sideLength);
+        countDown.setBounds(getBoardBoundXR() + 12 * Display.sideLength, getBoardBoundYU() - Display.sideLength, 2*Display.sideLength, 2*Display.sideLength);
+        add(countDown);
+        
+        timeManager = new TimeManager(countDown, timerPanel);
     }
     
     
-    public void newGame() {
-    	timerPanel.stop();
+    public void newGame() {	
         board.newGame();
         indexOfHighlightedStones.clear();
         Graphics2D g2D = (Graphics2D) getGraphics();
         paintBoard(g2D);
         paintPlayer(g2D);
-        timerPanel.start();
+        
+        timeManager.OnNewGame();
     }
     
     
     public void reset() {
-    	timerPanel.pause();
         board.reset();
         indexOfHighlightedStones.clear();
+        
+        timeManager.OnReset();
     }
     
     
@@ -89,24 +101,30 @@ class Display extends JPanel {
     
     
     public void gameOver(int winnerNumber) {
-        reset();
+    	timeManager.OnGameOver();
+    	
         String message;
         if (winnerNumber == 1 || winnerNumber == 2)
             message = "玩家 " + winnerNumber + " 胜利";
         else
             message = "平局";
         messageLabel.setText(message);
+        
+        timeManager.OnDialog();
         JOptionPane.showMessageDialog(this, message, "游戏结束", JOptionPane.INFORMATION_MESSAGE);
+        
+        reset();
     }
     
     
     public void admitDefeat() {
-    	timerPanel.pause();
+    	timeManager.OnAdmitDefeat();
         gameOver(3 - board.getNextPlayerNumber());
     }
     
     
     public void choosePlayerColor() {
+    	timeManager.OnDialog();
         if (board.getHistorySize() == 3) {
             String message = "玩家 2 选择执子颜色";
             messageLabel.setText(message);
@@ -141,11 +159,13 @@ class Display extends JPanel {
             else
                 board.choosePlayer1Color(StoneType.WHITE);
         }
+        timeManager.OnDialogClose();
     }
     
     
     public void putStone(int i, int j) throws GameNotStartedException, StoneOutOfBoardRangeException, StoneAlreadyPlacedException {
         board.putStone(i, j);
+        timeManager.OnPutStone();
         Graphics2D g2D = (Graphics2D) getGraphics();
         paintStone(g2D, board.getLastStone());
         List<Integer> indexOfRowStones = board.getIndexOfRowStones();
@@ -160,6 +180,7 @@ class Display extends JPanel {
         }
         else
             paintPlayer(g2D);
+       
     }
     
     
@@ -173,6 +194,7 @@ class Display extends JPanel {
         }
         catch (GameNotStartedException ignored) {
         }
+        timeManager.OnRemoveStone();
     }
     
     
