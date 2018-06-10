@@ -3,44 +3,12 @@ package Gomoku;
 import javax.swing.JOptionPane;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.concurrent.LinkedBlockingDeque;
-
-class ThreadComm//进程间信息交换
-{
-    byte from;
-    int toID; //发送给谁
-    String context; //内容
-    char[] flag = new char[2]; //报文类别
-    
-    
-    public ThreadComm() {
-    
-    }
-    
-    
-    public void writeComm(int to, byte[] buffer) //写
-    {
-        this.toID = to;
-        context = "";
-        for (byte aBuffer : buffer)
-            context = context + aBuffer;
-    }
-    
-    
-    public void readComm(byte[] buffer) //都
-    {
-        for (int i = 0; i < this.context.length(); i++)
-            buffer[i] = (byte) context.charAt(i);
-    }
-}
-
 
 public class Server extends AbstractSocket {
     public static final int PORT = 10000;
@@ -52,24 +20,29 @@ public class Server extends AbstractSocket {
     private final LinkedBlockingDeque<byte[]> messageQueue;
     
     private final ServerSocket server;
-    private Client client1;
-    private Client client2;
+    private Socket client1;
+    private Socket client2;
     
     
     public static void main(String[] args) {
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
-            Socket socket1 = new Socket("127.0.0.1", Server.PORT);
-            Socket socket2 = new Socket("127.0.0.1", Server.PORT);
-            
-            Server myServer = new Server(serverSocket);
+            Socket clientSocket1 = new Socket("127.0.0.1", Server.PORT);
+            Socket clientSocket2 = new Socket("127.0.0.1", Server.PORT);
+            System.out.println("Server running on local port:" + serverSocket.getLocalPort());
+            System.out.println("client1 running on local port:" + clientSocket1.getLocalPort());
+            System.out.println("client2 running on local port:" + clientSocket1.getLocalPort());
+            Server server = new Server(serverSocket);
+            Client client1 = new Client(clientSocket1);
+            client1.setClientId(1);
+            Client client2 = new Client(clientSocket2);
+            client2.setClientId(2);
         }
         catch (IOException ignored) {
         }
     }
     
     
-    // TODO 初始化
     public Server(ServerSocket server) {
         super();
         socketId = 0;
@@ -79,15 +52,10 @@ public class Server extends AbstractSocket {
         player1ClientId = 0;
         this.server = server;
         messageQueue = new LinkedBlockingDeque<byte[]>();
-        System.out.println("Server running on " + server.getLocalPort());
+        
         try {
-            client1 = new Client(this.server.accept());
-            client1.setClientId(1);
-            System.out.println("client1 running on " + client1.getSocket().getLocalPort());
-            //this.client1=server.
-            client2 = new Client(this.server.accept());
-            client2.setClientId(2);
-            System.out.println("client2 running on " + client2.getSocket().getLocalPort());
+            client1 = server.accept();
+            client2 = server.accept();
             Thread receiveFromClient1 = new Thread(() -> receiveFromClient(client1));
             Thread receiveFromClient2 = new Thread(() -> receiveFromClient(client2));
             receiveFromClient1.start();
@@ -102,7 +70,7 @@ public class Server extends AbstractSocket {
                     continue;
                 else {
                     byte[] message = messageQueue.pop();
-                    System.out.println(message);
+                    // System.out.println(message);
                     if (waitingForResponse) {
                         if (waitingForResponseClientId == parseSocketId(message)) {
                             waitingForResponse = false;
@@ -112,6 +80,8 @@ public class Server extends AbstractSocket {
                         else
                             continue;
                     }
+                    else
+                        handleMessage(message);
                 }
             }
         });
@@ -120,20 +90,12 @@ public class Server extends AbstractSocket {
     }
     
     
-    private void receiveFromClient(Client client) {
+    private void receiveFromClient(Socket client) {
         while (!client.isClosed()) {
-            byte[] headBuffer = new byte[headLength];
             try {
-                System.out.println("0");
                 InputStream is = client.getInputStream();
-                System.out.println("1");
-                int length = tryRead(is, headBuffer);
-                System.out.println("2");
-                byte[] restBuf = new byte[length];
-                is.read(restBuf);
-                byte[] message = new byte[headBuffer.length + restBuf.length];
-                System.arraycopy(headBuffer, 0, message, 0, headLength);
-                System.arraycopy(restBuf, 0, message, headLength, restBuf.length);
+                byte[] message = receivePackage(is);
+                printMessage(message);
                 messageQueue.add(message);
             }
             catch (IOException ignored) {
@@ -146,9 +108,9 @@ public class Server extends AbstractSocket {
     public void sendToClient(int clientId, byte[] message) {
         try {
             if (clientId == 1)
-                send(client1.getOutputStream(), message);
+                sendPackage(client1.getOutputStream(), message);
             else
-                send(client2.getOutputStream(), message);
+                sendPackage(client2.getOutputStream(), message);
         }
         catch (IOException ignored) {
         }
@@ -200,7 +162,7 @@ public class Server extends AbstractSocket {
         byte[] newMessage = packMessage(INQUIRE_TO_NEW_GAME, null);
         sendToClient(destClientId, newMessage);
         /**
-         * TODO 直接转发对方 client1（报文头可能需要稍作修改）
+         * TODO 直接转发对方 client（报文头可能需要稍作修改）
          * @messageType INQUIRE_TO_NEW_GAME
          */
     }
@@ -222,8 +184,8 @@ public class Server extends AbstractSocket {
         player1ClientId = 3 - clientId; // 请求新建游戏的玩家的编号为 1，同意新建游戏的玩家的编号为 2（就是本函数 message 的来源）。
         byte[] player1Message = packNewGame(1);
         byte[] player2Message = packNewGame(2);
-        sendToPlayer(1, player1Message);
-        sendToPlayer(2, player2Message);
+        sendToClient(player1ClientId, player1Message);
+        sendToClient(clientId, player2Message);
         /**
          * TODO 向双方 client1 发送新建游戏命令
          * @messageType NEW_GAME
@@ -286,7 +248,6 @@ public class Server extends AbstractSocket {
             catch (ArrayIndexOutOfBoundsException ignored) {
             }
         }
-        board.reset();
         byte[] gameOverMessage = packGameOver(winnerNumber, indexOfRowStones, rowStones);
         sendToClient(1, gameOverMessage);
         sendToClient(2, gameOverMessage);
@@ -297,6 +258,7 @@ public class Server extends AbstractSocket {
          * @messageArg indexOfRowStones 连珠的棋子编号
          * @messageArg rowStones        连珠的棋子
          */
+        board.reset();
     }
     
     
@@ -503,7 +465,6 @@ public class Server extends AbstractSocket {
             else
                 board.choosePlayer1Color(StoneType.WHITE);
         }
-        
         if (board.isPlayerColorChosen()) {
             StoneType player1StoneType = board.getPlayer1StoneType();
             StoneType player2StoneType = (player1StoneType == StoneType.BLACK ? StoneType.WHITE : StoneType.BLACK);

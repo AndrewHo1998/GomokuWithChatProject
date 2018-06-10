@@ -1,10 +1,7 @@
 package Gomoku;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +25,31 @@ public abstract class AbstractSocket {
     public static final int CHAT_TEXT = 14;                // client 发送聊天消息，server 直接转发对方 client。
     
     
+    public void printMessage(byte[] message) {
+        int srcSocketId = parseSocketId(message);
+        StringBuilder builder = new StringBuilder();
+        if (socketId == 0)
+            builder.append("server");
+        else
+            builder.append("client").append(socketId);
+        builder.append(" receive from ");
+        if (srcSocketId == 0)
+            builder.append("server");
+        else
+            builder.append("client").append(srcSocketId);
+        builder.append(": { ");
+        boolean flag = false;
+        for (byte b : message) {
+            if (flag)
+                builder.append(", ");
+            flag = true;
+            builder.append(b);
+        }
+        builder.append(" }");
+        System.out.println(builder.toString());
+    }
+    
+    
     public int getSocketId() {
         return socketId;
     }
@@ -39,32 +61,26 @@ public abstract class AbstractSocket {
     
     
     public int getMessageLength(byte[] head) {
-        return (head[1] << 24) & 0xFF + (head[2] << 16) & 0xFF + (head[3] << 8) & 0xFF + head[3] & 0xFF;
+        return ((head[1] << 24) & 0xFF) + ((head[2] << 16) & 0xFF) + ((head[3] << 8) & 0xFF) + (head[4] & 0xFF);
     }
     
     
-    public int tryRead(InputStream is, byte[] headBuffer) throws IOException {
-        try {
-            
-            System.out.println("try before read");
-            is.read(headBuffer);
-            // System.out.println(is.readAllBytes());
-            System.out.println("try after read");
-            return getMessageLength(headBuffer);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-        return -1;
+    public byte[] receivePackage(InputStream is) throws IOException {
+        byte[] headBuffer = new byte[headLength];
+        is.read(headBuffer);
+        byte[] restBuffer = new byte[getMessageLength(headBuffer)];
+        is.read(restBuffer);
+        byte[] message = new byte[headBuffer.length + restBuffer.length];
+        System.arraycopy(headBuffer, 0, message, 0, headLength);
+        System.arraycopy(restBuffer, 0, message, headLength, restBuffer.length);
+        return message;
     }
     
     
-    public void send(OutputStream os, byte[] buffer) {
+    public void sendPackage(OutputStream os, byte[] buffer) {
         while (true) {
             try {
-                System.out.println("before send " + buffer);
                 os.write(buffer);
-                System.out.println("after send " + buffer);
                 os.flush();
                 break;
             }
@@ -101,7 +117,6 @@ public abstract class AbstractSocket {
      * @param message 接收到的报文
      */
     protected void handleMessage(byte[] message) {
-        System.out.println(message);
         int messageType = parseMessageType(message);
         switch (messageType) {
             case NEW_GAME:                 // server 向双方 client 发送新建游戏命令
@@ -307,13 +322,13 @@ public abstract class AbstractSocket {
         if (message == null)
             message = new byte[0];
         byte[] packedMessage = new byte[headLength + message.length];
-        System.arraycopy(message, 0, packedMessage, 0, message.length);
+        System.arraycopy(message, 0, packedMessage, headLength, message.length);
         packedMessage[0] = (byte) socketId;
         int length = message.length;
-        packedMessage[1] = (byte) (length >> 24);
-        packedMessage[2] = (byte) (length >> 16);
-        packedMessage[3] = (byte) (length >> 8);
-        packedMessage[4] = (byte) length;
+        packedMessage[1] = (byte) ((length >>> 24) & 0xFF);
+        packedMessage[2] = (byte) ((length >>> 16) & 0xFF);
+        packedMessage[3] = (byte) ((length >>> 8) & 0xFF);
+        packedMessage[4] = (byte) (length & 0xFF);
         packedMessage[5] = (byte) messageType;
         return packedMessage;
     }
@@ -336,12 +351,14 @@ public abstract class AbstractSocket {
         byte[] message = new byte[3 + 3 * rowStoneNumber];
         message[0] = (byte) winnerNumber;
         message[1] = (byte) rowStoneNumber;
-        message[2] = (byte) (rowStones.get(0).getType() == StoneType.BLACK ? 1 : 2);
-        for (int index = 0; index < rowStoneNumber; ++index)
-            message[2 + index] = indexOfRowStones.get(index).byteValue();
-        for (int index = 0; index < rowStoneNumber; ++index) {
-            message[2 + 2 * rowStoneNumber + 2 * index] = (byte) rowStones.get(index).getI();
-            message[2 + 2 * rowStoneNumber + 2 * index + 1] = (byte) rowStones.get(index).getJ();
+        if (rowStoneNumber > 0) {
+            message[2] = (byte) (rowStones.get(0).getType() == StoneType.BLACK ? 1 : 2);
+            for (int index = 0; index < rowStoneNumber; ++index)
+                message[3 + index] = indexOfRowStones.get(index).byteValue();
+            for (int index = 0; index < rowStoneNumber; ++index) {
+                message[3 + rowStoneNumber + 2 * index] = (byte) rowStones.get(index).getI();
+                message[3 + rowStoneNumber + 2 * index + 1] = (byte) rowStones.get(index).getJ();
+            }
         }
         return packMessage(GAME_OVER, message);
     }
@@ -357,8 +374,8 @@ public abstract class AbstractSocket {
             indexOfRowStones.add((int) message[headLength + 3 + index]);
         for (int index = 0; index < rowStoneNumber; ++index) {
             try {
-                int i = message[2 + 2 * rowStoneNumber + 2 * index];
-                int j = message[2 + 2 * rowStoneNumber + 2 * index + 1];
+                int i = message[headLength + 3 + rowStoneNumber + 2 * index];
+                int j = message[headLength + 3 + rowStoneNumber + 2 * index + 1];
                 rowStones.add(new Stone(i, j, stoneType));
             }
             catch (StoneOutOfBoardRangeException ignored) {
@@ -400,7 +417,8 @@ public abstract class AbstractSocket {
     
     protected byte[] packInquireToPutStone(int i, int j) {
         byte[] message = {(byte) i, (byte) j};
-        return packMessage(INQUIRE_TO_PUT_STONE, message);
+        message = packMessage(INQUIRE_TO_PUT_STONE, message);
+        return message;
     }
     
     

@@ -23,7 +23,7 @@ public class Display extends JPanel {
     private StoneType playerStoneType; // 本方玩家执子颜色
     private int playerNumber; // 本方玩家号
     private final TimerPanel timerPanel;
-    private final CountDown countDown;
+    private final CountDownPanel countDownPanel;
     private final TimeManager timeManager;
     
     public static final int sideLength = 40;
@@ -71,13 +71,13 @@ public class Display extends JPanel {
         timerPanel.setBounds(boardBoundXR + 10 * Display.sideLength, boardBoundYU + 14 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
         add(timerPanel);
         
-        countDown = new CountDown(2 * Display.sideLength, 2 * Display.sideLength);
-        countDown.setBounds(boardBoundXR + 12 * Display.sideLength, boardBoundYU - Display.sideLength, 2 * Display.sideLength, 2 * Display.sideLength);
-        countDown.setDisplay(this);
-        add(countDown);
+        countDownPanel = new CountDownPanel(2 * Display.sideLength, 2 * Display.sideLength);
+        countDownPanel.setBounds(boardBoundXR + 12 * Display.sideLength, boardBoundYU - Display.sideLength / 2, 2 * Display.sideLength, 2 * Display.sideLength);
+        countDownPanel.setDisplay(this);
+        add(countDownPanel);
         
-        timeManager = new TimeManager(countDown, timerPanel);
-    
+        timeManager = new TimeManager(countDownPanel, timerPanel);
+        
         reset();
     }
     
@@ -130,8 +130,9 @@ public class Display extends JPanel {
             }
         }
         String message;
-        if (winnerNumber == 1 || winnerNumber == 2)
-            message = "玩家 " + winnerNumber + " 胜利";
+        if (winnerNumber == 1 || winnerNumber == 2) {
+            message = (winnerNumber == playerNumber ? "本方" : "对方") + "玩家胜利";
+        }
         else
             message = "平局";
         messageLabel.setText(message);
@@ -155,7 +156,7 @@ public class Display extends JPanel {
     public void choosePlayerColor() {
         timeManager.OnDialog();
         if (getHistorySize() == 3) {
-            String message = "玩家 2 选择执子颜色";
+            String message = (playerNumber == 2 ? "本方" : "对方") + "玩家选择执子颜色";
             messageLabel.setText(message);
             if (playerNumber == 2) {
                 String[] options = {"执黑", "执白", "继续"};
@@ -176,7 +177,7 @@ public class Display extends JPanel {
             }
         }
         else if (!isPlayerColorChosen() && getHistorySize() == 5) {
-            String message = "玩家 1 选择执子颜色";
+            String message = (playerNumber == 1 ? "本方" : "对方") + "玩家选择执子颜色";
             messageLabel.setText(message);
             if (playerNumber == 1) {
                 String[] options = {"执黑", "执白"};
@@ -211,12 +212,13 @@ public class Display extends JPanel {
         timeManager.OnPutStone();
         Graphics2D g2D = (Graphics2D) getGraphics();
         if (previousStone != null)
-            paintStoneIndex(g2D, previousStone, historySize - 2, false);
-        paintStoneIndex(g2D, stone, historySize - 1, true);
+            paintStoneWithIndex(g2D, previousStone, historySize - 2, false);
+        paintStoneWithIndex(g2D, stone, historySize - 1, true);
         setHistorySize(historySize);
         if (!isPlayerColorChosen())
             choosePlayerColor();
-        paintPlayer(g2D);
+        else
+            paintPlayer(g2D);
     }
     
     
@@ -232,6 +234,7 @@ public class Display extends JPanel {
         Graphics2D g2D = (Graphics2D) getGraphics();
         eraseStone(g2D, stone.getI(), stone.getJ());
         paintStoneIndex(g2D, previousStone, historySize - 1, true);
+        setHistorySize(historySize);
         paintPlayer(g2D);
     }
     
@@ -287,6 +290,7 @@ public class Display extends JPanel {
     public void setPlayerStoneType(StoneType playerStoneType, int presetStoneNumber) {
         this.playerStoneType = playerStoneType;
         this.presetStoneNumber = presetStoneNumber;
+        paintPlayer((Graphics2D) getGraphics());
     }
     
     
@@ -311,7 +315,7 @@ public class Display extends JPanel {
      */
     public int getNextPlayerNumber() {
         if (isPlayerColorChosen())
-            return (playerStoneType == getNextStoneType() ? 1 : 2);
+            return (playerStoneType == getNextStoneType() ? playerNumber : 3 - playerNumber);
         else
             return (getHistorySize() < 3 ? 1 : 2);
     }
@@ -516,7 +520,8 @@ public class Display extends JPanel {
      * 在通知区域（在棋盘外）绘制下一个棋子颜色（就是当前回合的落子颜色），并显示下一个执行落子的玩家的玩家号（就是当前回合的玩家号）。
      */
     private void paintPlayer(Graphics2D g2D) {
-        paintMessage(g2D, "玩家 " + getNextPlayerNumber() + (getNextStoneType() == StoneType.BLACK ? " 执黑" : " 执白"));
+        String message = (playerNumber == getNextPlayerNumber() ? "本方玩家" : "对方玩家") + (getNextStoneType() == StoneType.BLACK ? "执黑" : "执白");
+        paintMessage(g2D, message);
     }
     
     

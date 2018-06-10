@@ -67,7 +67,7 @@ public class ChatPanel extends JPanel implements Runnable, ActionListener {
         //信息区只能读
         jta.setEditable(false);
         //添加监听
-        jb.setActionCommand("send");
+        jb.setActionCommand("sendPackage");
         //注册监听
         jb.addActionListener(this);
         
@@ -120,7 +120,7 @@ public class ChatPanel extends JPanel implements Runnable, ActionListener {
     
     
     public void actionPerformed(ActionEvent e) {
-        if (e.getActionCommand().equals("send")) {
+        if (e.getActionCommand().equals("sendPackage")) {
             mbs.send_ino = sender;
             String s_board = setmessage(sender);        //通过面板来获取记录
             this.jta.setText(s_board);

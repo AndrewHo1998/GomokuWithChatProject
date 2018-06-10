@@ -5,10 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -45,34 +41,9 @@ public class Client extends AbstractSocket {
     }
     
     
-    public Socket getSocket() {
-        return client;
-    }
-    
-    
-    public InputStream getInputStream() throws IOException {
-        return client.getInputStream();
-    }
-    
-    
-    public OutputStream getOutputStream() throws IOException {
-        return client.getOutputStream();
-    }
-    
-    
-    public boolean isClosed() {
-        return client.isClosed();
-    }
-    
-    
-    public void close() throws IOException {
-        client.close();
-    }
-    
-    
     public void sendToServer(byte[] message) {
         try {
-            send(client.getOutputStream(), message);
+            sendPackage(client.getOutputStream(), message);
         }
         catch (IOException ignored) {
         }
@@ -81,16 +52,10 @@ public class Client extends AbstractSocket {
     
     private void receiveFromServer() {
         while (!client.isClosed()) {
-            byte[] headBuf = new byte[headLength];
             try {
                 InputStream is = client.getInputStream();
-                int length = tryRead(is, headBuf);
-                System.out.println("Received message from client");
-                byte[] restBuf = new byte[length];
-                is.read(restBuf);
-                byte[] message = new byte[headBuf.length + restBuf.length];
-                System.arraycopy(headBuf, 0, message, 0, headLength);
-                System.arraycopy(restBuf, 0, message, headLength, restBuf.length);
+                byte[] message = receivePackage(is);
+                printMessage(message);
                 messageQueue.add(message);
             }
             catch (IOException ignored) {
@@ -116,7 +81,8 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleNewGame(byte[] message) {
-        int playerNumber = 1; // TODO 从 message 解析 playerNumber
+        Object[] messageArgs = unpackNewGame(message);
+        int playerNumber = (Integer) messageArgs[0]; // 从 message 解析 playerNumber
         display.newGame(playerNumber);
     }
     
@@ -168,6 +134,7 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRejectToNewGame(byte[] message) {
+        JOptionPane.showMessageDialog(display, "对方拒绝新建游戏", "", JOptionPane.INFORMATION_MESSAGE);
     }
     
     
@@ -181,9 +148,10 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleGameOver(byte[] message) {
-        int winnerNumber = 1; // TODO 从 message 解析 (winnerNumber, indexOfRowStones, rowStones)
-        List<Integer> indexOfRowStones = new ArrayList<Integer>();
-        List<Stone> rowStones = new ArrayList<Stone>();
+        Object[] messageArgs = unpackGameOver(message);
+        int winnerNumber = (Integer) messageArgs[0]; // 从 message 解析 (winnerNumber, indexOfRowStones, rowStones)
+        List<Integer> indexOfRowStones = (ArrayList<Integer>) messageArgs[1];
+        List<Stone> rowStones = (ArrayList<Stone>) messageArgs[2];
         display.gameOver(winnerNumber, indexOfRowStones, rowStones);
     }
     
@@ -211,9 +179,10 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handlePutStone(byte[] message) {
-        Stone stone = null; // TODO 从 message 解析 (stone, previousStone, historySize)
-        Stone previousStone = null;
-        int historySize = 0;
+        Object[] messageArgs = unpackPutStone(message);
+        Stone stone = (Stone) messageArgs[0]; // 从 message 解析 (stone, previousStone, historySize)
+        Stone previousStone = (Stone) messageArgs[1];
+        int historySize = (Integer) messageArgs[2];
         display.putStone(stone, previousStone, historySize);
     }
     
@@ -241,9 +210,10 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRetractStone(byte[] message) {
-        Stone stone = null; // TODO 从 message 解析 (stone, previousStone, historySize)
-        Stone previousStone = null;
-        int historySize = 0;
+        Object[] messageArgs = unpackRetractStone(message);
+        Stone stone = (Stone) messageArgs[0]; // 从 message 解析 (stone, previousStone, historySize)
+        Stone previousStone = (Stone) messageArgs[1];
+        int historySize = (Integer) messageArgs[2];
         display.retractStone(stone, previousStone, historySize);
     }
     
@@ -259,7 +229,17 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleInquireToRetractStone(byte[] message) {
-    
+        String[] options = {"同意", "拒绝"};
+        int state = JOptionPane.showOptionDialog(display,
+                                                 "对方请求悔棋",
+                                                 "",
+                                                 JOptionPane.YES_NO_OPTION,
+                                                 JOptionPane.QUESTION_MESSAGE,
+                                                 null,
+                                                 options,
+                                                 options[0]);
+        byte[] newMessage = packMessage(state == JOptionPane.YES_OPTION ? ACCEPT_TO_RETRACT_STONE : REJECT_TO_RETRACT_STONE, null);
+        sendToServer(newMessage);
     }
     
     
@@ -285,7 +265,7 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRejectToRetractStone(byte[] message) {
-    
+        JOptionPane.showMessageDialog(display, "对方拒绝悔棋", "", JOptionPane.INFORMATION_MESSAGE);
     }
     
     
@@ -312,8 +292,9 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleSetPlayerColor(byte[] message) {
-        StoneType playerStoneType = StoneType.BLACK; // TODO 从 message 解析 (playerStoneType, playerNumber)
-        int presetStoneNumber = 5;
+        Object[] messageArgs = unpackSetPlayerColor(message);
+        StoneType playerStoneType = (StoneType) messageArgs[0]; // 从 message 解析 (playerStoneType, playerNumber)
+        int presetStoneNumber = (Integer) messageArgs[1];
         display.setPlayerStoneType(playerStoneType, presetStoneNumber);
     }
     

@@ -1,11 +1,11 @@
 package Timer;
 
 public class TimeManager {
-    private CountDown countDown;
+    private CountDownPanel countDown;
     private TimerPanel timerPanel;
     
     
-    public TimeManager(CountDown countDown, TimerPanel timerPanel) {
+    public TimeManager(CountDownPanel countDown, TimerPanel timerPanel) {
         this.countDown = countDown;
         this.timerPanel = timerPanel;
     }

@@ -7,24 +7,18 @@ import javax.swing.JPanel;
 
 import Gomoku.Display;
 
-public class CountDown extends JPanel {
+public class CountDownPanel extends JPanel {
     Display display;
     int remainSec;
     final static int maxTime = 15;
     JLabel labelS;
-    Start ss;
-    int width, height;
-    Font numberFont;
+    StartManager startManager;
     
     
-    public CountDown(int width, int height) {
-        
-        this.width = width;
-        this.height = height;
+    public CountDownPanel(int width, int height) {
         this.setSize(width, height);
-        numberFont = new Font("Consolas", Font.BOLD, height);
+        Font numberFont = new Font("Consolas", Font.BOLD, 3 * height / 4);
         
-        // second
         remainSec = maxTime;
         labelS = new JLabel("");
         labelS.setBounds(0, 0, width, height);
@@ -42,18 +36,18 @@ public class CountDown extends JPanel {
     
     
     public void start() {
-        ss = new Start(this);
-        ss.start();
+        startManager = new StartManager(this);
+        startManager.start();
     }
     
     
     public void pause() {
-        new Pause(ss).start();
+        new PauseManager(startManager).start();
     }
     
     
     public void stop() {
-        new Pause(ss).start();
+        new PauseManager(startManager).start();
         setTime(maxTime);
         labelS.setText("");
     }
@@ -66,31 +60,31 @@ public class CountDown extends JPanel {
     }
     
     
-    public void setTime(int s) {
+    public void setTime(int sec) {
         
-        this.remainSec = s;
+        this.remainSec = sec;
     }
     
     
-    public int getS() {
+    public int getSec() {
         return remainSec;
     }
     
     
-    class Start extends Thread {
-        CountDown cd;
+    private static class StartManager extends Thread {
+        private CountDownPanel countDownPanel;
         
         
-        public Start(CountDown cd) {
-            this.cd = cd;
+        public StartManager(CountDownPanel countDownPanel) {
+            this.countDownPanel = countDownPanel;
         }
         
         
         @Override
         public void run() {
-            int time_s;
-            time_s = cd.getS();
-            cd.showTime();
+            int remainSec;
+            remainSec = countDownPanel.getSec();
+            countDownPanel.showTime();
             
             while (true) {
                 try {
@@ -99,31 +93,31 @@ public class CountDown extends JPanel {
                 catch (InterruptedException e) {
                     break;
                 }
-                time_s--;
-                if (time_s < 0 && display.getPlayerNumber() == display.getNextPlayerNumber()) {
-                    new Thread(() -> display.admitDefeat()).start();    // time over!
+                --remainSec;
+                if (remainSec < 0 && countDownPanel.display.getPlayerNumber() == countDownPanel.display.getNextPlayerNumber()) {
+                    new Thread(() -> countDownPanel.display.admitDefeat()).start();    // time over!
                     break;
                 }
-                cd.setTime(time_s);
-                cd.showTime();
+                countDownPanel.setTime(remainSec);
+                countDownPanel.showTime();
             }
         }
     }
     
     
-    class Pause extends Thread {
-        Start ss;
+    private static class PauseManager extends Thread {
+        StartManager startManager;
         
         
-        public Pause(Start ss) {
-            this.ss = ss;
+        public PauseManager(StartManager startManager) {
+            this.startManager = startManager;
         }
         
         
         @Override
         public void run() {
             try {
-                ss.interrupt();
+                startManager.interrupt();
             }
             catch (NullPointerException ignored) {
             }
