@@ -74,7 +74,7 @@ public class ChatPanel extends JPanel {
     }
     
     
-    private void addMessage(String text) {
+    private void addLine(String text) {
         historyTextArea.append(text);
         historyTextArea.append("\n");
     }
@@ -90,7 +90,7 @@ public class ChatPanel extends JPanel {
                     line.insert(0, " ");
                 line.deleteCharAt(0);
             }
-            addMessage(line.toString());
+            addLine(line.toString());
         }
         else {
             StringBuilder input = new StringBuilder(text);
@@ -101,11 +101,11 @@ public class ChatPanel extends JPanel {
                     line.deleteCharAt(line.length() - 1);
                     input.delete(0, i - 1);
                     i = 0;
-                    addMessage(line.toString());
+                    addLine(line.toString());
                     line = new StringBuilder(incident);
                 }
                 else if (i == input.length() - 1)
-                    addMessage(line.toString());
+                    addLine(line.toString());
             }
         }
     }
