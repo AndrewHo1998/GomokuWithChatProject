@@ -65,21 +65,25 @@ public class Display extends JPanel {
         boardCenterX = stoneCenterX[8];
         boardCenterY = stoneCenterY[8];
         
-        messageLabel.setBounds(boardBoundXR + 7 * sideLength / 2, boardBoundYU, 7 * sideLength, sideLength);
-        messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
-        add(messageLabel);
-        
-        timerPanel = new TimerPanel(4 * Display.sideLength, 2 * Display.sideLength);
-        timerPanel.setBounds(boardBoundXR + 10 * Display.sideLength, boardBoundYU + 14 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
-        add(timerPanel);
-        
-        countDownPanel = new CountDownPanel(this, 2 * Display.sideLength, 2 * Display.sideLength);
-        countDownPanel.setBounds(boardBoundXR + 12 * Display.sideLength, boardBoundYU - Display.sideLength / 2, 2 * Display.sideLength, 2 * Display.sideLength);
-        add(countDownPanel);
-        
+        timerPanel = new TimerPanel();
+        countDownPanel = new CountDownPanel(this);
         timeManager = new TimeManager(countDownPanel, timerPanel);
         
+        initLayout();
+        
         reset();
+    }
+    
+    
+    private void initLayout() {
+        messageLabel.setBounds(boardBoundXR + 7 * sideLength / 2, boardBoundYU, 7 * sideLength, sideLength);
+        messageLabel.setFont(new Font(Font.DIALOG, Font.PLAIN, sideLength / 2));
+        timerPanel.setBounds(boardBoundXR + 10 * Display.sideLength, boardBoundYU + 14 * Display.sideLength, 4 * Display.sideLength, Display.sideLength);
+        countDownPanel.setBounds(boardBoundXR + 12 * Display.sideLength, boardBoundYU - Display.sideLength / 2, 2 * Display.sideLength, 2 * Display.sideLength);
+        
+        add(messageLabel);
+        add(timerPanel);
+        add(countDownPanel);
     }
     
     
@@ -145,7 +149,6 @@ public class Display extends JPanel {
      * 认输
      */
     public void admitDefeat() {
-        // TODO 待修改
         timeManager.OnAdmitDefeat();
         client.admitDefeat();
     }
@@ -170,7 +173,7 @@ public class Display extends JPanel {
                                                          options,
                                                          options[0]);
                 /**
-                 * TODO 向 server 发送按键选择
+                 * 向 server 发送按键选择
                  * @messageType CHOOSE_PLAYER_COLOR
                  * @arg state 按键选择
                  */
@@ -191,14 +194,13 @@ public class Display extends JPanel {
                                                          options,
                                                          options[0]);
                 /**
-                 * TODO 向 server 发送按键选择
+                 * 向 server 发送按键选择
                  * @messageType CHOOSE_PLAYER_COLOR
                  * @arg state 按键选择
                  */
                 client.choosePlayerColor(state);
             }
         }
-        timeManager.OnDialogClose();
     }
     
     
@@ -291,7 +293,11 @@ public class Display extends JPanel {
     public void setPlayerStoneType(StoneType playerStoneType, int presetStoneNumber) {
         this.playerStoneType = playerStoneType;
         this.presetStoneNumber = presetStoneNumber;
+        System.out.printf("%d %d\n", client.socketId, presetStoneNumber);
         paintPlayer((Graphics2D) getGraphics());
+        timeManager.OnDialogClose();
+        if (isPlayerColorChosen())
+            JOptionPane.showMessageDialog(this, "本方执" + (playerStoneType == StoneType.BLACK ? "黑" : "白") + " 对方执" + (playerStoneType == StoneType.BLACK ? "白" : "黑"), "", JOptionPane.INFORMATION_MESSAGE);
     }
     
     

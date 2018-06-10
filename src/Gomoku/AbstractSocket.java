@@ -61,12 +61,12 @@ public abstract class AbstractSocket {
     }
     
     
-    public int getMessageLength(byte[] head) {
+    public static int getMessageLength(byte[] head) {
         return ((head[1] << 24) & 0xFF) + ((head[2] << 16) & 0xFF) + ((head[3] << 8) & 0xFF) + (head[4] & 0xFF);
     }
     
     
-    public byte[] receivePackage(InputStream is) throws IOException {
+    public static byte[] receivePackage(InputStream is) throws IOException {
         byte[] headBuffer = new byte[headLength];
         is.read(headBuffer);
         byte[] restBuffer = new byte[getMessageLength(headBuffer)];
@@ -78,7 +78,7 @@ public abstract class AbstractSocket {
     }
     
     
-    public void sendPackage(OutputStream os, byte[] buffer) {
+    public static void sendPackage(OutputStream os, byte[] buffer) {
         while (true) {
             try {
                 os.write(buffer);
@@ -86,7 +86,6 @@ public abstract class AbstractSocket {
                 break;
             }
             catch (IOException ignored) {
-                ignored.printStackTrace();
             }
         }
     }
@@ -455,13 +454,21 @@ public abstract class AbstractSocket {
     
     
     protected byte[] packSetPlayerColor(StoneType stoneType, int presetStoneNumber) {
-        byte[] message = {(byte) (stoneType == StoneType.BLACK ? 1 : 2), (byte) presetStoneNumber};
+        byte[] message = {0, (byte) presetStoneNumber};
+        if (stoneType == StoneType.BLACK)
+            message[0] = 1;
+        else if (stoneType == StoneType.WHITE)
+            message[0] = 2;
         return packMessage(SET_PLAYER_COLOR, message);
     }
     
     
     protected Object[] unpackSetPlayerColor(byte[] message) {
-        StoneType stoneType = (message[headLength] == 1 ? StoneType.BLACK : StoneType.WHITE);
+        StoneType stoneType = StoneType.SPACE;
+        if (message[headLength] == 1)
+            stoneType = StoneType.BLACK;
+        else if (message[headLength] == 2)
+            stoneType = StoneType.WHITE;
         int presetStoneNumber = message[headLength + 1];
         return new Object[]{stoneType, presetStoneNumber};
     }

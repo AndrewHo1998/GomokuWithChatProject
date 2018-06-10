@@ -1,5 +1,7 @@
 package Gomoku;
 
+import Gomoku.Chat.ChatPanel;
+
 import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,18 +12,20 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class Client extends AbstractSocket {
     private final Gomoku gomoku;
-    private Display display;
     private final Socket client;
     private final LinkedBlockingDeque<byte[]> messageQueue;
     
     
-    // TODO 初始化
     public Client(Socket client) {
         this.client = client;
         gomoku = new Gomoku(this);
-        display = gomoku.getDisplay();
         messageQueue = new LinkedBlockingDeque<byte[]>();
         
+        initService();
+    }
+    
+    
+    private void initService() {
         Thread receiveFromServer = new Thread(this::receiveFromServer);
         
         Thread service = new Thread(() -> {
@@ -82,7 +86,7 @@ public class Client extends AbstractSocket {
     protected void handleNewGame(byte[] message) {
         Object[] messageArgs = unpackNewGame(message);
         int playerNumber = (Integer) messageArgs[0]; // 从 message 解析 playerNumber
-        display.newGame(playerNumber);
+        gomoku.newGame(playerNumber);
     }
     
     
@@ -98,7 +102,7 @@ public class Client extends AbstractSocket {
     @Override
     protected void handleInquireToNewGame(byte[] message) {
         String[] options = {"同意", "拒绝"};
-        int state = JOptionPane.showOptionDialog(display,
+        int state = JOptionPane.showOptionDialog(gomoku,
                                                  "对方请求新建游戏",
                                                  "",
                                                  JOptionPane.YES_NO_OPTION,
@@ -133,7 +137,7 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRejectToNewGame(byte[] message) {
-        JOptionPane.showMessageDialog(display, "对方拒绝新建游戏", "", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(gomoku, "对方拒绝新建游戏", "", JOptionPane.INFORMATION_MESSAGE);
     }
     
     
@@ -151,7 +155,7 @@ public class Client extends AbstractSocket {
         int winnerNumber = (Integer) messageArgs[0]; // 从 message 解析 (winnerNumber, indexOfRowStones, rowStones)
         List<Integer> indexOfRowStones = (ArrayList<Integer>) messageArgs[1];
         List<Stone> rowStones = (ArrayList<Stone>) messageArgs[2];
-        display.gameOver(winnerNumber, indexOfRowStones, rowStones);
+        gomoku.gameOver(winnerNumber, indexOfRowStones, rowStones);
     }
     
     
@@ -182,7 +186,7 @@ public class Client extends AbstractSocket {
         Stone stone = (Stone) messageArgs[0]; // 从 message 解析 (stone, previousStone, historySize)
         Stone previousStone = (Stone) messageArgs[1];
         int historySize = (Integer) messageArgs[2];
-        display.putStone(stone, previousStone, historySize);
+        gomoku.putStone(stone, previousStone, historySize);
     }
     
     
@@ -213,7 +217,7 @@ public class Client extends AbstractSocket {
         Stone stone = (Stone) messageArgs[0]; // 从 message 解析 (stone, previousStone, historySize)
         Stone previousStone = (Stone) messageArgs[1];
         int historySize = (Integer) messageArgs[2];
-        display.retractStone(stone, previousStone, historySize);
+        gomoku.retractStone(stone, previousStone, historySize);
     }
     
     
@@ -229,7 +233,7 @@ public class Client extends AbstractSocket {
     @Override
     protected void handleInquireToRetractStone(byte[] message) {
         String[] options = {"同意", "拒绝"};
-        int state = JOptionPane.showOptionDialog(display,
+        int state = JOptionPane.showOptionDialog(gomoku,
                                                  "对方请求悔棋",
                                                  "",
                                                  JOptionPane.YES_NO_OPTION,
@@ -264,7 +268,7 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleRejectToRetractStone(byte[] message) {
-        JOptionPane.showMessageDialog(display, "对方拒绝悔棋", "", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(gomoku, "对方拒绝悔棋", "", JOptionPane.INFORMATION_MESSAGE);
     }
     
     
@@ -294,7 +298,7 @@ public class Client extends AbstractSocket {
         Object[] messageArgs = unpackSetPlayerColor(message);
         StoneType playerStoneType = (StoneType) messageArgs[0]; // 从 message 解析 (playerStoneType, playerNumber)
         int presetStoneNumber = (Integer) messageArgs[1];
-        display.setPlayerStoneType(playerStoneType, presetStoneNumber);
+        gomoku.setPlayerStoneType(playerStoneType, presetStoneNumber);
     }
     
     
@@ -307,7 +311,9 @@ public class Client extends AbstractSocket {
      */
     @Override
     protected void handleChatText(byte[] message) {
-        // TODO
+        Object[] messageArgs = unpackChatText(message);
+        String chatText = (String) messageArgs[0]; // 从 message 解析 chatText
+        gomoku.addMessageFromOtherSide(chatText);
     }
     
     
@@ -337,6 +343,12 @@ public class Client extends AbstractSocket {
     
     public void inquireToRetractStone() {
         byte[] message = packMessage(INQUIRE_TO_RETRACT_STONE, null);
+        sendToServer(message);
+    }
+    
+    
+    public void sendChatText(String chatText) {
+        byte[] message = packChatText(chatText);
         sendToServer(message);
     }
 }

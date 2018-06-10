@@ -1,154 +1,122 @@
 package Gomoku.Chat;
 
-import java.awt.Color;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import Gomoku.Client;
 
 import javax.swing.*;
+import java.awt.*;
 
-public class ChatPanel extends JPanel implements Runnable, ActionListener {
-    
-    static class MyBaseClient {
-        //定义参数，务必让发送信息和接收信息的参数共享
-        
-        static String send_ino, get_ino;
-        
-        
-        //传出出本地发送的消息
-        public String getsend(String s) {
-            return send_ino;
-        }
-        
-        
-        //得到对方发的需要显示的message
-        public void receive(String s) {
-            get_ino = s;
-        }
-    }
+public class ChatPanel extends JPanel {
+    private final Client client;
+    private final JTextArea historyTextArea;
+    private final JButton sendButton;
+    private final JTextField inputTextField;
+    private final JScrollPane historyScrollPane;
+    private String incident;
     
     
-    MyBaseClient mbs = new MyBaseClient();
-    
-    
-    //传出出本地发送的消息
-    public String getsend(String s) {
-        return this.mbs.getsend(s);
-    }
-    
-    
-    //得到对方发的需要显示的message
-    public void receive(String s) {
-        this.mbs.receive(s);
-    }
-    
-    
-    String sender, getter;
-    JPanel jp;
-    JTextArea jta;
-    JButton jb;
-    JTextField jt;
-    JScrollPane jsp;
-    
-    
-    public ChatPanel() {
-        
+    public ChatPanel(Client client) {
+        this.client = client;
         //创建组件
-        jp = new JPanel();
-        jta = new JTextArea();
-        jb = new JButton("发送");
-        jt = new JTextField();
-        jsp = new JScrollPane(jta);
-        
-        jt.setCaretColor(Color.BLACK);//jt光标颜色
-        jt.setForeground(Color.BLACK);//jt字体颜色
+        historyTextArea = new JTextArea();
+        sendButton = new JButton("发送");
+        inputTextField = new JTextField();
+        historyScrollPane = new JScrollPane(historyTextArea);
         
         //信息区只能读
-        jta.setEditable(false);
-        //添加监听
-        jb.setActionCommand("sendPackage");
+        
         //注册监听
-        jb.addActionListener(this);
-        
-        //添加组件
-        jp.setLayout(new GridLayout(2, 1));
-        
-        jp.add(jt);
-        jp.add(jb);
-        
-        this.setLayout(new GridLayout(2, 1));
-        this.add(jsp);
-        this.add(jp);
-        
-        this.setSize(400, 400);
-        this.setVisible(true);
+        initLayout();
+        initActionListeners();
     }
     
     
-    public ChatPanel(int x, int y, int width, int height) {
-        this();
+    @Override
+    public void setBounds(int x, int y, int width, int height) {
         super.setBounds(x, y, width, height);
+        initLayout();
     }
     
     
-    public void run() {
-        while (true) {
-            try {
-                Thread.sleep(500);
+    private void initLayout() {
+        int width = getWidth(), height = getHeight();
+        removeAll();
+        setLayout(null);
+        historyScrollPane.setBounds(0, 0, width, 8 * height / 9);
+        inputTextField.setBounds(0, 8 * height / 9, 4 * width / 5, height - 8 * height / 9);
+        sendButton.setBounds(4 * width / 5, 8 * height / 9, width - 4 * width / 5, height - 8 * height / 9);
+        historyTextArea.setLineWrap(false);
+        historyTextArea.setEditable(false);
+        historyScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        historyScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        //添加组件
+        add(historyScrollPane);
+        add(inputTextField);
+        add(sendButton);
+        FontMetrics fontMetrics = historyTextArea.getFontMetrics(historyTextArea.getFont());
+        StringBuilder builder = new StringBuilder();
+        int w = 0;
+        while ((w = fontMetrics.stringWidth(builder.toString())) <= 3 * width / 5)
+            builder.append(" ");
+        builder.deleteCharAt(builder.length() - 1);
+        incident = builder.toString();
+    }
+    
+    
+    private void initActionListeners() {
+        sendButton.addActionListener(e -> {
+            String text = inputTextField.getText();
+            if (!text.equals("")) {
+                inputTextField.setText("");
+                addMessageFromThisSide(text);
+                client.sendChatText(text);
             }
-            catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+        });
+    }
+    
+    
+    private void addMessage(String text) {
+        historyTextArea.append(text);
+        historyTextArea.append("\n");
+    }
+    
+    
+    private void addMessage(String text, String incident, int bound) {
+        FontMetrics fontMetrics = historyTextArea.getFontMetrics(historyTextArea.getFont());
+        StringBuilder line = new StringBuilder(incident);
+        line.append(text);
+        if (fontMetrics.stringWidth(line.toString()) < bound) {
+            if (!incident.equals("")) {
+                while (fontMetrics.stringWidth(line.toString()) <= bound)
+                    line.insert(0, " ");
+                line.deleteCharAt(0);
             }
-            sender = this.jt.getText();
-            getter = MyBaseClient.get_ino;
-            //更新面板
-            //更新面板
-            if (getter == null) //信息为空，跳过更新
-            {
-                continue;
+            addMessage(line.toString());
+        }
+        else {
+            StringBuilder input = new StringBuilder(text);
+            line = new StringBuilder(incident);
+            for (int i = 0; i < input.length(); ++i) {
+                line.append(input.charAt(i));
+                if (fontMetrics.stringWidth(line.toString()) > bound) {
+                    line.deleteCharAt(line.length() - 1);
+                    input.delete(0, i - 1);
+                    i = 0;
+                    addMessage(line.toString());
+                    line = new StringBuilder(incident);
+                }
+                else if (i == input.length() - 1)
+                    addMessage(line.toString());
             }
-            if (MyBaseClient.get_ino != null) {
-                String s_board = this.setmessage(getter);        //通过面板来获取记录
-                this.jta.setText(s_board);
-                MyBaseClient.get_ino = null;
-            }
-            this.repaint();
         }
     }
     
     
-    public void actionPerformed(ActionEvent e) {
-        if (e.getActionCommand().equals("sendPackage")) {
-            MyBaseClient.send_ino = sender;
-            String s_board = setmessage(sender);        //通过面板来获取记录
-            this.jta.setText(s_board);
-            jt.setText(null);//清空内容
-            this.repaint();
-        }
+    public void addMessageFromThisSide(String chatText) {
+        addMessage(chatText, this.incident, getWidth() - 2 * historyScrollPane.getVerticalScrollBar().getWidth());
     }
     
     
-    //格式化输入输出字符
-    public String setmessage(String input) {
-        StringBuilder output;
-        StringBuilder s_board = new StringBuilder(this.jta.getText());
-        input = input.trim();
-        
-        while (input.length() > 20) {
-            output = new StringBuilder(input.substring(0, 20));
-            input = input.substring(20);
-            for (int i = 0; i < 70; i++) {
-                output.insert(0, " ");
-            }
-            s_board.append(output).append("\n");
-        }
-        StringBuilder inputBuilder = new StringBuilder(input);
-        for (int i = 0; i < 70; i++) {
-            inputBuilder.insert(0, " ");
-        }
-        input = inputBuilder.toString();
-        s_board.append(input).append("\n");
-        return s_board.toString();
+    public void addMessageFromOtherSide(String chatText) {
+        addMessage(chatText, "", 2 * getWidth() / 5 - historyScrollPane.getVerticalScrollBar().getWidth());
     }
 }

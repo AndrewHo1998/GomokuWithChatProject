@@ -4,10 +4,13 @@
 
 package Gomoku;
 
+import Gomoku.Chat.ChatPanel;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.List;
 
 public class Gomoku extends JFrame {
     private final Client client;
@@ -15,9 +18,7 @@ public class Gomoku extends JFrame {
     private final JButton retractButton;
     private final JButton newGameButton;
     private final JButton showRuleButton;
-    private final JTextArea chatPanel;
-    private final JTextField chatTextField;
-    private final JButton sendButton;
+    private final ChatPanel chatPanel;
     
     public static final String swap2Rule = "一. 假先方在棋盘任意下三手（二黑一白），假后方有三种选择：\n" +
                                            "     1. 选黑。\n" +
@@ -28,14 +29,8 @@ public class Gomoku extends JFrame {
                                            "四. 超过五子以上不算赢也不算输。";
     
     
-    public static void main(String[] args) {
-        Gomoku gomoku = new Gomoku(null);
-    }
-    
-    
     public Gomoku(Client client) {
         super("五子棋");
-        assert client != null;
         this.client = client;
         display = new Display(60, 60, client);
         setContentPane(display);
@@ -43,9 +38,7 @@ public class Gomoku extends JFrame {
         newGameButton = new JButton("新游戏");
         retractButton = new JButton("悔棋");
         showRuleButton = new JButton("游戏规则");
-        chatPanel = new JTextArea("这里是聊天记录窗口");
-        chatTextField = new JTextField("这里是聊天发送窗口");
-        sendButton = new JButton("发送");
+        chatPanel = new ChatPanel(client);
         
         initLayout();
         
@@ -56,7 +49,6 @@ public class Gomoku extends JFrame {
     }
     
     
-    // TODO 待修改
     private void initActionListeners() {
         retractButton.setEnabled(false);
         newGameButton.addActionListener(e -> {
@@ -67,10 +59,6 @@ public class Gomoku extends JFrame {
         });
         retractButton.addActionListener(e -> client.inquireToRetractStone());
         showRuleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, swap2Rule, "Swap2 规则", JOptionPane.INFORMATION_MESSAGE));
-        sendButton.addActionListener(e -> {
-            chatPanel.setText(chatPanel.getText().trim() + '\n' + chatTextField.getText().trim());
-            chatTextField.setText("");
-        });
         display.addGameStartedChangeListener(evt -> {
             if ((Boolean) evt.getNewValue())
                 newGameButton.setText("认输");
@@ -119,21 +107,74 @@ public class Gomoku extends JFrame {
         newGameButton.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 2 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
         retractButton.setBounds(display.getBoardBoundXR() + 6 * Display.sideLength, display.getBoardBoundYU() + 2 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
         showRuleButton.setBounds(display.getBoardBoundXR() + 10 * Display.sideLength, display.getBoardBoundYU() + 2 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
-        chatPanel.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 4 * Display.sideLength + Display.sideLength / 2, 12 * Display.sideLength, 8 * Display.sideLength);
-        chatTextField.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 13 * Display.sideLength, 10 * Display.sideLength, Display.sideLength);
-        sendButton.setBounds(display.getBoardBoundXR() + 12 * Display.sideLength, display.getBoardBoundYU() + 13 * Display.sideLength, 2 * Display.sideLength, Display.sideLength);
+        chatPanel.setBounds(display.getBoardBoundXR() + 2 * Display.sideLength, display.getBoardBoundYU() + 4 * Display.sideLength + Display.sideLength / 2, 12 * Display.sideLength, 9 * Display.sideLength);
         display.add(newGameButton);
         display.add(retractButton);
         display.add(showRuleButton);
         display.add(chatPanel);
-        display.add(chatTextField);
-        display.add(sendButton);
         
         setResizable(false);
     }
     
     
-    public Display getDisplay() {
-        return display;
+    /**
+     * 新建游戏并刷新界面
+     *
+     * @param playerNumber 本方玩家号
+     */
+    public void newGame(int playerNumber) {
+        display.newGame(playerNumber);
+    }
+    
+    
+    /**
+     * 结束游戏但不刷新界面
+     *
+     * @param winnerNumber     胜者的玩家号
+     * @param indexOfRowStones 连珠的棋子编号
+     * @param rowStones        连珠的棋子
+     */
+    public void gameOver(int winnerNumber, List<Integer> indexOfRowStones, List<Stone> rowStones) {
+        display.gameOver(winnerNumber, indexOfRowStones, rowStones);
+    }
+    
+    
+    /**
+     * 执行落子
+     *
+     * @param stone         落子的 stone
+     * @param previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
+     * @param historySize   落子完成后棋盘上的棋子数
+     */
+    public void putStone(Stone stone, Stone previousStone, int historySize) {
+        display.putStone(stone, previousStone, historySize);
+    }
+    
+    
+    /**
+     * 执行悔棋
+     *
+     * @param stone         被移走的 stone
+     * @param previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
+     * @param historySize   悔棋完成后棋盘上的棋子数
+     */
+    public void retractStone(Stone stone, Stone previousStone, int historySize) {
+        display.retractStone(stone, previousStone, historySize);
+    }
+    
+    
+    /**
+     * 设置玩家执子颜色
+     *
+     * @param playerStoneType   玩家执子颜色
+     * @param presetStoneNumber 预先放置的棋子数
+     */
+    public void setPlayerStoneType(StoneType playerStoneType, int presetStoneNumber) {
+        display.setPlayerStoneType(playerStoneType, presetStoneNumber);
+    }
+    
+    
+    public void addMessageFromOtherSide(String chatText) {
+        chatPanel.addMessageFromOtherSide(chatText);
     }
 }

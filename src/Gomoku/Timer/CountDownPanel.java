@@ -8,25 +8,38 @@ import java.text.NumberFormat;
 
 public class CountDownPanel extends JPanel {
     private Display display;
-    private int remainSec;
-    public final static int maxTime = 15;
+    private int remainingSec;
+    public final static int maximumTime = 15;
+    public final static int minimumTime = 5;
     private JLabel secLabel;
     private StartManager startManager;
     
     
-    public CountDownPanel(Display display, int width, int height) {
+    public CountDownPanel(Display display) {
         this.display = display;
-        this.setSize(width, height);
-        Font numberFont = new Font("Consolas", Font.BOLD, 3 * height / 4);
-        
-        remainSec = maxTime;
         secLabel = new JLabel("");
+        remainingSec = maximumTime;
+        initLayout();
+    }
+    
+    
+    private void initLayout() {
+        int width = getWidth(), height = getHeight();
+        removeAll();
+        setLayout(null);
+        Font numberFont = new Font("Consolas", Font.BOLD, 3 * height / 4);
         secLabel.setBounds(0, 0, width, height);
         secLabel.setFont(numberFont);
         secLabel.setHorizontalAlignment(JLabel.CENTER);
         
-        this.add(secLabel);
-        this.setVisible(true);
+        add(secLabel);
+    }
+    
+    
+    @Override
+    public void setBounds(int x, int y, int width, int height) {
+        super.setBounds(x, y, width, height);
+        initLayout();
     }
     
     
@@ -43,26 +56,26 @@ public class CountDownPanel extends JPanel {
     
     public void stop() {
         new PauseManager(startManager).start();
-        setTime(maxTime);
+        setTime(maximumTime);
         secLabel.setText("");
     }
     
     
     public void showTime() {
-        NumberFormat nf = NumberFormat.getInstance();
-        nf.setMinimumIntegerDigits(2);
-        secLabel.setText(nf.format(remainSec));
+        NumberFormat numberFormat = NumberFormat.getInstance();
+        numberFormat.setMinimumIntegerDigits(2);
+        secLabel.setForeground(remainingSec > minimumTime ? Color.BLACK : Color.RED);
+        secLabel.setText(numberFormat.format(remainingSec));
     }
     
     
     public void setTime(int sec) {
-        
-        this.remainSec = sec;
+        this.remainingSec = sec;
     }
     
     
     public int getSec() {
-        return remainSec;
+        return remainingSec;
     }
     
     

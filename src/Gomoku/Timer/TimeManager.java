@@ -1,61 +1,61 @@
 package Gomoku.Timer;
 
 public class TimeManager {
-    private CountDownPanel countDown;
+    private CountDownPanel countDownPanel;
     private TimerPanel timerPanel;
     
     
-    public TimeManager(CountDownPanel countDown, TimerPanel timerPanel) {
-        this.countDown = countDown;
+    public TimeManager(CountDownPanel countDownPanel, TimerPanel timerPanel) {
+        this.countDownPanel = countDownPanel;
         this.timerPanel = timerPanel;
     }
     
     
     public void OnNewGame() {
-        countDown.start();
+        countDownPanel.start();
         timerPanel.stop();
         timerPanel.start();
     }
     
     
     public void OnGameOver() {
-        countDown.stop();
+        countDownPanel.stop();
         timerPanel.pause();
     }
     
     
     public void OnReset() {
-        countDown.stop();
+        countDownPanel.stop();
         timerPanel.stop();
     }
     
     
     public void OnPutStone() {
-        countDown.stop();
-        countDown.start();
+        countDownPanel.stop();
+        countDownPanel.start();
     }
     
     
     public void OnRetractStone() {
-        countDown.stop();
-        countDown.start();
+        countDownPanel.stop();
+        countDownPanel.start();
     }
     
     
     public void OnAdmitDefeat() {
-        countDown.pause();
+        countDownPanel.pause();
         timerPanel.pause();
     }
     
     
     public void OnDialog() {
-        countDown.pause();
+        countDownPanel.pause();
         timerPanel.pause();
     }
     
     
     public void OnDialogClose() {
-        countDown.start();
+        countDownPanel.start();
         timerPanel.start();
     }
 }
