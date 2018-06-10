@@ -1,9 +1,10 @@
 package Gomoku;
 
-import java.io.*;
-import java.net.*;
-import java.util.ArrayList;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.IOException;
 import java.util.List;
+import java.util.ArrayList;
 
 public abstract class AbstractSocket {
     protected int socketId; // socket 编号

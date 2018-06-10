@@ -1,12 +1,10 @@
-package Timer;
+package Gomoku.Timer;
 
-import java.awt.Font;
+import javax.swing.*;
+import java.awt.*;
 import java.text.NumberFormat;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 public class TimerPanel extends JPanel {
-    
     private int hour, min, sec;
     private JLabel hourLabel, minLabel, secLabel;
     private StartManager start;

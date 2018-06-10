@@ -1,14 +1,14 @@
 package Gomoku;
 
-import javax.swing.JOptionPane;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.swing.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.EmptyStackException;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.EmptyStackException;
 
 public class Server extends AbstractSocket {
     public static final int PORT = 10000;

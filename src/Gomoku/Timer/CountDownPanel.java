@@ -1,37 +1,32 @@
-package Timer;
-
-import java.awt.Font;
-import java.text.NumberFormat;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
+package Gomoku.Timer;
 
 import Gomoku.Display;
 
+import javax.swing.*;
+import java.awt.*;
+import java.text.NumberFormat;
+
 public class CountDownPanel extends JPanel {
-    Display display;
-    int remainSec;
-    final static int maxTime = 15;
-    JLabel labelS;
-    StartManager startManager;
+    private Display display;
+    private int remainSec;
+    public final static int maxTime = 15;
+    private JLabel secLabel;
+    private StartManager startManager;
     
     
-    public CountDownPanel(int width, int height) {
+    public CountDownPanel(Display display, int width, int height) {
+        this.display = display;
         this.setSize(width, height);
         Font numberFont = new Font("Consolas", Font.BOLD, 3 * height / 4);
         
         remainSec = maxTime;
-        labelS = new JLabel("");
-        labelS.setBounds(0, 0, width, height);
-        labelS.setFont(numberFont);
-        labelS.setHorizontalAlignment(JLabel.CENTER);
+        secLabel = new JLabel("");
+        secLabel.setBounds(0, 0, width, height);
+        secLabel.setFont(numberFont);
+        secLabel.setHorizontalAlignment(JLabel.CENTER);
         
-        this.add(labelS);
+        this.add(secLabel);
         this.setVisible(true);
-    }
-    
-    
-    public void setDisplay(Display display) {
-        this.display = display;
     }
     
     
@@ -49,14 +44,14 @@ public class CountDownPanel extends JPanel {
     public void stop() {
         new PauseManager(startManager).start();
         setTime(maxTime);
-        labelS.setText("");
+        secLabel.setText("");
     }
     
     
     public void showTime() {
         NumberFormat nf = NumberFormat.getInstance();
         nf.setMinimumIntegerDigits(2);
-        labelS.setText(nf.format(remainSec));
+        secLabel.setText(nf.format(remainSec));
     }
     
     

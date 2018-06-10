@@ -1,10 +1,9 @@
-package Chat;
+package Gomoku.Chat;
 
 import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.net.Socket;
 
 import javax.swing.*;
 
@@ -102,17 +101,17 @@ public class ChatPanel extends JPanel implements Runnable, ActionListener {
                 e.printStackTrace();
             }
             sender = this.jt.getText();
-            getter = mbs.get_ino;
+            getter = MyBaseClient.get_ino;
             //更新面板
             //更新面板
             if (getter == null) //信息为空，跳过更新
             {
                 continue;
             }
-            if (mbs.get_ino != null) {
+            if (MyBaseClient.get_ino != null) {
                 String s_board = this.setmessage(getter);        //通过面板来获取记录
                 this.jta.setText(s_board);
-                mbs.get_ino = null;
+                MyBaseClient.get_ino = null;
             }
             this.repaint();
         }
@@ -121,7 +120,7 @@ public class ChatPanel extends JPanel implements Runnable, ActionListener {
     
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("sendPackage")) {
-            mbs.send_ino = sender;
+            MyBaseClient.send_ino = sender;
             String s_board = setmessage(sender);        //通过面板来获取记录
             this.jta.setText(s_board);
             jt.setText(null);//清空内容

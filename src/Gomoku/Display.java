@@ -4,12 +4,14 @@
 
 package Gomoku;
 
+import Gomoku.Timer.CountDownPanel;
+import Gomoku.Timer.TimeManager;
+import Gomoku.Timer.TimerPanel;
+
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.List;
-
-import Timer.*;
 
 public class Display extends JPanel {
     private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
@@ -71,9 +73,8 @@ public class Display extends JPanel {
         timerPanel.setBounds(boardBoundXR + 10 * Display.sideLength, boardBoundYU + 14 * Display.sideLength, 4 * Display.sideLength, 2 * Display.sideLength);
         add(timerPanel);
         
-        countDownPanel = new CountDownPanel(2 * Display.sideLength, 2 * Display.sideLength);
+        countDownPanel = new CountDownPanel(this, 2 * Display.sideLength, 2 * Display.sideLength);
         countDownPanel.setBounds(boardBoundXR + 12 * Display.sideLength, boardBoundYU - Display.sideLength / 2, 2 * Display.sideLength, 2 * Display.sideLength);
-        countDownPanel.setDisplay(this);
         add(countDownPanel);
         
         timeManager = new TimeManager(countDownPanel, timerPanel);
