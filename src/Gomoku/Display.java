@@ -49,8 +49,8 @@ public class Display extends JPanel {
     public Display(int x, int y, Client client) {
         super();
         this.client = client;
-        gameStartedChangeSupport = new DataChangeSupport<Boolean>(this, false);
-        historySizeChangeSupport = new DataChangeSupport<Integer>(this, 0);
+        gameStartedChangeSupport = new DataChangeSupport<Boolean>(this, "gameStarted", false);
+        historySizeChangeSupport = new DataChangeSupport<Integer>(this, "historySize", 0);
         
         messageLabel = new JLabel("");
         boardBoundXL = x;
@@ -708,10 +708,12 @@ public class Display extends JPanel {
 
 class DataChangeSupport<T> extends PropertyChangeSupport {
     private T value;
+    private String propertyName;
     
     
-    public DataChangeSupport(Object source, T initialValue) {
+    public DataChangeSupport(Object source, String propertyName, T initialValue) {
         super(source);
+        this.propertyName = propertyName;
         value = initialValue;
     }
     
@@ -724,6 +726,6 @@ class DataChangeSupport<T> extends PropertyChangeSupport {
     public void setValue(T newValue) {
         T oldValue = value;
         value = newValue;
-        firePropertyChange("value", oldValue, newValue);
+        firePropertyChange(propertyName, oldValue, newValue);
     }
 }
