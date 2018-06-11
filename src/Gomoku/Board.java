@@ -5,7 +5,6 @@
 package Gomoku;
 
 import java.awt.Point;
-import java.beans.PropertyChangeSupport;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Stack;
@@ -254,29 +253,6 @@ public class Board {
         }
         rowStonesUpdated = true;
         return indexOfRowStones;
-    }
-}
-
-
-class DataChangeSupport<T> extends PropertyChangeSupport {
-    private T value;
-    
-    
-    public DataChangeSupport(Object source, T initialValue) {
-        super(source);
-        value = initialValue;
-    }
-    
-    
-    public T getValue() {
-        return value;
-    }
-    
-    
-    public void setValue(T newValue) {
-        T oldValue = value;
-        value = newValue;
-        firePropertyChange("value", oldValue, newValue);
     }
 }
 

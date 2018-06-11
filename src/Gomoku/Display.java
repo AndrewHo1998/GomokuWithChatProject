@@ -10,8 +10,9 @@ import Gomoku.Timer.TimerPanel;
 
 import javax.swing.*;
 import java.awt.*;
-import java.beans.PropertyChangeListener;
 import java.util.List;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 
 public class Display extends JPanel {
     private final int boardBoundXL, boardBoundXR, boardBoundYU, boardBoundYD, boardCenterX, boardCenterY;
@@ -701,5 +702,28 @@ public class Display extends JPanel {
      */
     public static Color getOppositeColorFromType(StoneType type) {
         return (type != StoneType.BLACK ? black : white);
+    }
+}
+
+
+class DataChangeSupport<T> extends PropertyChangeSupport {
+    private T value;
+    
+    
+    public DataChangeSupport(Object source, T initialValue) {
+        super(source);
+        value = initialValue;
+    }
+    
+    
+    public T getValue() {
+        return value;
+    }
+    
+    
+    public void setValue(T newValue) {
+        T oldValue = value;
+        value = newValue;
+        firePropertyChange("value", oldValue, newValue);
     }
 }
