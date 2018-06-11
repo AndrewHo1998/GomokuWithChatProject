@@ -31,7 +31,7 @@ public class Server extends AbstractSocket {
             Socket clientSocket2 = new Socket("127.0.0.1", Server.PORT);
             System.out.println("Server is running on local port: " + serverSocket.getLocalPort());
             System.out.println("client1 is running on local port: " + clientSocket1.getLocalPort());
-            System.out.println("client2 is running on local port: " + clientSocket1.getLocalPort());
+            System.out.println("client2 is running on local port: " + clientSocket2.getLocalPort());
             Server server = new Server(serverSocket);
             Client client1 = new Client(clientSocket1);
             client1.setClientId(1);
