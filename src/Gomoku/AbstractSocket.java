@@ -8,24 +8,29 @@ import java.util.ArrayList;
 
 public abstract class AbstractSocket {
     protected int socketId; // socket 编号
-    public static final int headLength = 6;
-    public static final int NEW_GAME = 0;                  // server 向双方 client 发送新建游戏命令
-    public static final int INQUIRE_TO_NEW_GAME = 1;       // client 请求新建游戏，server 直接转发对方 client。
-    public static final int ACCEPT_TO_NEW_GAME = 2;        // client 同意新建游戏，server 新建游戏，并向双方 client 发送新建游戏命令。
-    public static final int REJECT_TO_NEW_GAME = 3;        // client 拒绝新建游戏，server 直接转发对方 client。
-    public static final int GAME_OVER = 4;                 // server 向双方 client 发送游戏结束命令
-    public static final int ADMIT_DEFEAT = 5;              // client 认输，server 结束游戏，server 接收后向双方 client 发送游戏结束命令。
-    public static final int PUT_STONE = 6;                 // server 向双方 client 发送落子命令
-    public static final int INQUIRE_TO_PUT_STONE = 7;      // client 请求落子，server 进行处理，若可以落子则向双方 client 发送落子命令。
-    public static final int RETRACT_STONE = 8;             // server 向双方 client 发送悔棋命令
-    public static final int INQUIRE_TO_RETRACT_STONE = 9;  // client 请求悔棋，server 直接转发对方 client。
-    public static final int ACCEPT_TO_RETRACT_STONE = 10;  // client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
-    public static final int REJECT_TO_RETRACT_STONE = 11;  // client 拒绝悔棋，server 直接转发对方 client。
-    public static final int CHOOSE_PLAYER_COLOR = 12;      // client 选择执子颜色
-    public static final int SET_PLAYER_COLOR = 13;         // server 指定玩家执子颜色
-    public static final int CHAT_TEXT = 14;                // client 发送聊天消息，server 直接转发对方 client。
+    public static final int headLength = 6; // 报文头长度
+    public static final int NEW_GAME = 0;                 // server 向双方 client 发送新建游戏命令
+    public static final int INQUIRE_TO_NEW_GAME = 1;      // client 请求新建游戏，server 直接转发对方 client。
+    public static final int ACCEPT_TO_NEW_GAME = 2;       // client 同意新建游戏，server 新建游戏，并向双方 client 发送新建游戏命令。
+    public static final int REJECT_TO_NEW_GAME = 3;       // client 拒绝新建游戏，server 直接转发对方 client。
+    public static final int GAME_OVER = 4;                // server 向双方 client 发送游戏结束命令
+    public static final int ADMIT_DEFEAT = 5;             // client 认输，server 结束游戏，server 接收后向双方 client 发送游戏结束命令。
+    public static final int PUT_STONE = 6;                // server 向双方 client 发送落子命令
+    public static final int INQUIRE_TO_PUT_STONE = 7;     // client 请求落子，server 进行处理，若可以落子则向双方 client 发送落子命令。
+    public static final int RETRACT_STONE = 8;            // server 向双方 client 发送悔棋命令
+    public static final int INQUIRE_TO_RETRACT_STONE = 9; // client 请求悔棋，server 直接转发对方 client。
+    public static final int ACCEPT_TO_RETRACT_STONE = 10; // client 同意悔棋，server 悔棋，并向双方 client 发送悔棋命令。
+    public static final int REJECT_TO_RETRACT_STONE = 11; // client 拒绝悔棋，server 直接转发对方 client。
+    public static final int CHOOSE_PLAYER_COLOR = 12;     // client 选择执子颜色
+    public static final int SET_PLAYER_COLOR = 13;        // server 指定玩家执子颜色
+    public static final int CHAT_TEXT = 14;               // client 发送聊天消息，server 直接转发对方 client。
     
     
+    /**
+     * 打印报文内容
+     *
+     * @param message 接收到的报文
+     */
     public void printMessage(byte[] message) {
         int srcSocketId = parseSocketId(message);
         StringBuilder builder = new StringBuilder();
@@ -51,21 +56,37 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 获取 Socket 编号
+     */
     public int getSocketId() {
         return socketId;
     }
     
     
+    /**
+     * 设置 Socket 编号
+     */
     public void setSocketId(int socketId) {
         this.socketId = socketId;
     }
     
     
+    /**
+     * 获取报文长度
+     *
+     * @param head 接收到的报文头
+     */
     public static int getMessageLength(byte[] head) {
         return ((head[1] << 24) & 0xFF) + ((head[2] << 16) & 0xFF) + ((head[3] << 8) & 0xFF) + (head[4] & 0xFF);
     }
     
     
+    /**
+     * 从输入流接收报文
+     *
+     * @param is 输入流
+     */
     public static byte[] receivePackage(InputStream is) throws IOException {
         byte[] headBuffer = new byte[headLength];
         is.read(headBuffer);
@@ -78,10 +99,16 @@ public abstract class AbstractSocket {
     }
     
     
-    public static void sendPackage(OutputStream os, byte[] buffer) {
+    /**
+     * 向输出流发送报文
+     *
+     * @param os      输出流
+     * @param message 待发送的报文
+     */
+    public static void sendPackage(OutputStream os, byte[] message) {
         while (true) {
             try {
-                os.write(buffer);
+                os.write(message);
                 os.flush();
                 break;
             }
@@ -318,6 +345,12 @@ public abstract class AbstractSocket {
     protected abstract void handleChatText(byte[] message);
     
     
+    /**
+     * 向待发送的报文添加报文头
+     *
+     * @param messageType 向待发送的报文的报文类型
+     * @param message     向待发送的报文内容（未加入报文头）
+     */
     protected byte[] packMessage(int messageType, byte[] message) {
         if (message == null)
             message = new byte[0];
@@ -334,18 +367,44 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 打包新建游戏报文
+     *
+     * @param playerNumber 玩家编号
+     *
+     * @implNote @messageType NEW_GAME
+     * @implNote @messageArg  playerNumber 玩家编号
+     */
     protected byte[] packNewGame(int playerNumber) {
         byte[] message = {(byte) playerNumber};
         return packMessage(NEW_GAME, message);
     }
     
     
+    /**
+     * 拆包新建游戏报文
+     *
+     * @implNote @messageType NEW_GAME
+     * @implNote @messageArg  playerNumber 玩家编号
+     */
     protected Object[] unpackNewGame(byte[] message) {
         int playerNumber = message[headLength];
         return new Object[]{playerNumber};
     }
     
     
+    /**
+     * 打包结束游戏报文
+     *
+     * @param winnerNumber     胜者编号
+     * @param indexOfRowStones 连珠的棋子编号
+     * @param rowStones        连珠的棋子
+     *
+     * @implNote @messageType GAME_OVER
+     * @implNote @messageArg  winnerNumber     胜者编号
+     * @implNote @messageArg  indexOfRowStones 连珠的棋子编号
+     * @implNote @messageArg  rowStones        连珠的棋子
+     */
     protected byte[] packGameOver(int winnerNumber, List<Integer> indexOfRowStones, List<Stone> rowStones) {
         int rowStoneNumber = rowStones.size();
         byte[] message = new byte[3 + 3 * rowStoneNumber];
@@ -364,6 +423,14 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 拆包结束游戏报文
+     *
+     * @implNote @messageType GAME_OVER
+     * @implNote @messageArg  winnerNumber     胜者编号
+     * @implNote @messageArg  indexOfRowStones 连珠的棋子编号
+     * @implNote @messageArg  rowStones        连珠的棋子
+     */
     protected Object[] unpackGameOver(byte[] message) {
         int winnerNumber = message[headLength];
         int rowStoneNumber = message[headLength + 1];
@@ -385,6 +452,18 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 打包落子报文
+     *
+     * @param stone         落子的 stone
+     * @param previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
+     * @param historySize   落子完成后棋盘上的棋子数
+     *
+     * @implNote @messageType PUT_STONE
+     * @implNote @messageArg  stone         落子的 stone
+     * @implNote @messageArg  previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
+     * @implNote @messageArg  historySize   落子完成后棋盘上的棋子数
+     */
     protected byte[] packPutStone(Stone stone, Stone previousStone, int historySize) {
         byte[] message = new byte[7];
         message[0] = (byte) stone.getI();
@@ -402,6 +481,14 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 拆包落子报文
+     *
+     * @implNote @messageType PUT_STONE
+     * @implNote @messageArg  stone         落子的 stone
+     * @implNote @messageArg  previousStone 落子的 stone 的前一个 stone，若没有则传入 null。
+     * @implNote @messageArg  historySize   落子完成后棋盘上的棋子数
+     */
     protected Object[] unpackPutStone(byte[] message) {
         Stone stone = null, previousStone = null;
         try {
@@ -415,6 +502,16 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 打包请求落子报文
+     *
+     * @param i 落子的 stone 的棋盘格点横坐标
+     * @param j 落子的 stone 的棋盘格点纵坐标
+     *
+     * @implNote @messageType INQUIRE_TO_PUT_STONE
+     * @implNote @messageArg  i 落子的 stone 的棋盘格点横坐标
+     * @implNote @messageArg  j 落子的 stone 的棋盘格点纵坐标
+     */
     protected byte[] packInquireToPutStone(int i, int j) {
         byte[] message = {(byte) i, (byte) j};
         message = packMessage(INQUIRE_TO_PUT_STONE, message);
@@ -422,6 +519,13 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 拆包请求落子报文
+     *
+     * @implNote @messageType INQUIRE_TO_PUT_STONE
+     * @implNote @messageArg  i 落子的 stone 的棋盘格点横坐标
+     * @implNote @messageArg  j 落子的 stone 的棋盘格点纵坐标
+     */
     protected Object[] unpackInquireToPutStone(byte[] message) {
         int i = message[headLength];
         int j = message[headLength + 1];
@@ -429,6 +533,18 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 打包悔棋报文
+     *
+     * @param stone         被移走的 stone
+     * @param previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
+     * @param historySize   悔棋完成后棋盘上的棋子数
+     *
+     * @implNote @messageType RETRACT_STONE
+     * @implNote @messageArg  stone         被移走的 stone
+     * @implNote @messageArg  previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
+     * @implNote @messageArg  historySize   悔棋完成后棋盘上的棋子数
+     */
     protected byte[] packRetractStone(Stone stone, Stone previousStone, int historySize) {
         byte[] putStoneMessage = packPutStone(stone, previousStone, historySize);
         putStoneMessage[headLength - 1] = (byte) RETRACT_STONE;
@@ -436,23 +552,55 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 拆包悔棋报文
+     *
+     * @implNote @messageType RETRACT_STONE
+     * @implNote @messageArg  stone         被移走的 stone
+     * @implNote @messageArg  previousStone 被移走的 stone 的前一个 stone，因为可以悔棋时棋盘上至少有 4 个棋子，必然是非 null。
+     * @implNote @messageArg  historySize   悔棋完成后棋盘上的棋子数
+     */
     protected Object[] unpackRetractStone(byte[] message) {
         return unpackPutStone(message);
     }
     
     
+    /**
+     * 打包选择执子颜色报文
+     *
+     * @param state 按钮按键
+     *
+     * @implNote @messageType CHOOSE_PLAYER_COLOR
+     * @implNote @messageArg  state 按钮按键
+     */
     protected byte[] packChoosePlayerColor(int state) {
         byte[] message = {(byte) state};
         return packMessage(CHOOSE_PLAYER_COLOR, message);
     }
     
     
+    /**
+     * 拆包选择执子颜色报文
+     *
+     * @implNote @messageType CHOOSE_PLAYER_COLOR
+     * @implNote @messageArg  state 按钮按键
+     */
     protected Object[] unpackChoosePlayerColor(byte[] message) {
         int state = message[headLength];
         return new Object[]{state};
     }
     
     
+    /**
+     * 打包设置执子颜色报文
+     *
+     * @param stoneType         玩家棋子类型
+     * @param presetStoneNumber 预先放置的棋子数
+     *
+     * @implNote @messageType SET_PLAYER_COLOR
+     * @implNote @messageArg  playerStoneType   玩家棋子类型
+     * @implNote @messageArg  presetStoneNumber 预先放置的棋子数
+     */
     protected byte[] packSetPlayerColor(StoneType stoneType, int presetStoneNumber) {
         byte[] message = {0, (byte) presetStoneNumber};
         if (stoneType == StoneType.BLACK)
@@ -463,6 +611,13 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 拆包设置执子颜色报文
+     *
+     * @implNote @messageType SET_PLAYER_COLOR
+     * @implNote @messageArg  playerStoneType   玩家棋子类型
+     * @implNote @messageArg  presetStoneNumber 预先放置的棋子数
+     */
     protected Object[] unpackSetPlayerColor(byte[] message) {
         StoneType stoneType = StoneType.SPACE;
         if (message[headLength] == 1)
@@ -474,11 +629,25 @@ public abstract class AbstractSocket {
     }
     
     
+    /**
+     * 打包聊天消息报文
+     *
+     * @param chatText 聊天消息
+     *
+     * @implNote @messageType CHAT_TEXT
+     * @implNote @messageArg  chatText 聊天消息
+     */
     protected byte[] packChatText(String chatText) {
         return packMessage(CHAT_TEXT, chatText.getBytes());
     }
     
     
+    /**
+     * 拆包聊天消息报文
+     *
+     * @implNote @messageType CHAT_TEXT
+     * @implNote @messageArg  chatText 聊天消息
+     */
     protected Object[] unpackChatText(byte[] message) {
         String chatText = new String(message, headLength, message.length - headLength);
         return new Object[]{chatText};

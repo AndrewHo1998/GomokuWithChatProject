@@ -174,6 +174,11 @@ public class Gomoku extends JFrame {
     }
     
     
+    /**
+     * 在聊天面板上添加对方发来的消息
+     *
+     * @param chatText 对方发来的消息
+     */
     public void addMessageFromOtherSide(String chatText) {
         chatPanel.addMessageFromOtherSide(chatText);
     }

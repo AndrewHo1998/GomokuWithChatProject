@@ -74,8 +74,8 @@ public class ChatPanel extends JPanel {
     }
     
     
-    private void addLine(String text) {
-        historyTextArea.append(text);
+    private void addLine(String line) {
+        historyTextArea.append(line);
         historyTextArea.append("\n");
     }
     
