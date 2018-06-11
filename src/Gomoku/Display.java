@@ -294,7 +294,6 @@ public class Display extends JPanel {
     public void setPlayerStoneType(StoneType playerStoneType, int presetStoneNumber) {
         this.playerStoneType = playerStoneType;
         this.presetStoneNumber = presetStoneNumber;
-        System.out.printf("%d %d\n", client.socketId, presetStoneNumber);
         paintPlayer((Graphics2D) getGraphics());
         timeManager.OnDialogClose();
         if (isPlayerColorChosen())
@@ -708,7 +707,7 @@ public class Display extends JPanel {
 
 class DataChangeSupport<T> extends PropertyChangeSupport {
     private T value;
-    private String propertyName;
+    private final String propertyName;
     
     
     public DataChangeSupport(Object source, String propertyName, T initialValue) {
