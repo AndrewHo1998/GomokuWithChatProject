@@ -1,7 +1,5 @@
 package Gomoku;
 
-import Gomoku.Chat.ChatPanel;
-
 import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
