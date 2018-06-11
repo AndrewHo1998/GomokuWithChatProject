@@ -92,7 +92,7 @@ public abstract class AbstractSocket {
         is.read(headBuffer);
         byte[] restBuffer = new byte[getMessageLength(headBuffer)];
         is.read(restBuffer);
-        byte[] message = new byte[headBuffer.length + restBuffer.length];
+        byte[] message = new byte[headLength + restBuffer.length];
         System.arraycopy(headBuffer, 0, message, 0, headLength);
         System.arraycopy(restBuffer, 0, message, headLength, restBuffer.length);
         return message;

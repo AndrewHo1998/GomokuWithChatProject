@@ -16,15 +16,11 @@ public class ChatPanel extends JPanel {
     
     public ChatPanel(Client client) {
         this.client = client;
-        //创建组件
         historyTextArea = new JTextArea();
         sendButton = new JButton("发送");
         inputTextField = new JTextField();
         historyScrollPane = new JScrollPane(historyTextArea);
         
-        //信息区只能读
-        
-        //注册监听
         initLayout();
         initActionListeners();
     }
@@ -48,14 +44,12 @@ public class ChatPanel extends JPanel {
         historyTextArea.setEditable(false);
         historyScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         historyScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        //添加组件
         add(historyScrollPane);
         add(inputTextField);
         add(sendButton);
         FontMetrics fontMetrics = historyTextArea.getFontMetrics(historyTextArea.getFont());
         StringBuilder builder = new StringBuilder();
-        int w = 0;
-        while ((w = fontMetrics.stringWidth(builder.toString())) <= 3 * width / 5)
+        while (fontMetrics.stringWidth(builder.toString()) <= 3 * width / 5)
             builder.append(" ");
         builder.deleteCharAt(builder.length() - 1);
         incident = builder.toString();
