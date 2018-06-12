@@ -102,6 +102,7 @@ public class ChatPanel extends JPanel {
                     addLine(line.toString());
             }
         }
+        addLine("");
     }
     
     

@@ -33,12 +33,12 @@ public abstract class AbstractSocket {
         int srcSocketId = parseSocketId(message);
         StringBuilder builder = new StringBuilder();
         if (srcSocketId == 0)
-            builder.append("server");
+            builder.append("server0");
         else
             builder.append("client").append(srcSocketId);
         builder.append(" --> ");
         if (socketId == 0)
-            builder.append("server");
+            builder.append("server0");
         else
             builder.append("client").append(socketId);
         builder.append(": { ");
