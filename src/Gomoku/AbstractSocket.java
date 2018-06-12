@@ -432,18 +432,20 @@ public abstract class AbstractSocket {
     protected Object[] unpackGameOver(byte[] message) {
         int winnerNumber = message[headLength];
         int rowStoneNumber = (message[headLength + 1] & 0xFF);
-        StoneType stoneType = (message[headLength + 2] == 1 ? StoneType.BLACK : StoneType.WHITE);
         List<Integer> indexOfRowStones = new ArrayList<Integer>();
         List<Stone> rowStones = new ArrayList<Stone>();
-        for (int index = 0; index < rowStoneNumber; ++index)
-            indexOfRowStones.add(message[headLength + 3 + index] & 0xFF);
-        for (int index = 0; index < rowStoneNumber; ++index) {
-            try {
-                int i = message[headLength + 3 + rowStoneNumber + 2 * index];
-                int j = message[headLength + 3 + rowStoneNumber + 2 * index + 1];
-                rowStones.add(new Stone(i, j, stoneType));
-            }
-            catch (StoneOutOfBoardRangeException ignored) {
+        if (rowStoneNumber > 0) {
+            StoneType stoneType = (message[headLength + 2] == 1 ? StoneType.BLACK : StoneType.WHITE);
+            for (int index = 0; index < rowStoneNumber; ++index)
+                indexOfRowStones.add(message[headLength + 3 + index] & 0xFF);
+            for (int index = 0; index < rowStoneNumber; ++index) {
+                try {
+                    int i = message[headLength + 3 + rowStoneNumber + 2 * index];
+                    int j = message[headLength + 3 + rowStoneNumber + 2 * index + 1];
+                    rowStones.add(new Stone(i, j, stoneType));
+                }
+                catch (StoneOutOfBoardRangeException ignored) {
+                }
             }
         }
         return new Object[]{winnerNumber, indexOfRowStones, rowStones};
