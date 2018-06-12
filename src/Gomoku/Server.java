@@ -13,11 +13,11 @@ import java.util.EmptyStackException;
 public class Server extends AbstractSocket {
     public static final int PORT = 10000;
     
-    private boolean waitingForResponse; // 是否正在等待 client1 回应
-    private int waitingForResponseClientId; // 是否正在等待的 client1 的 ID （1 或 2）
+    private boolean waitingForResponse; // 是否正在等待 client 回应
+    private int waitingForResponseClientId; // 是否正在等待的 client 的 ID （1 或 2）
     private Board board; // 棋盘
     private int player1ClientId; // 玩家 1 的客户端编号（1 或 2）
-    private final LinkedBlockingDeque<byte[]> messageQueue;
+    private final LinkedBlockingDeque<byte[]> messageQueue; // 消息队列，用于存储接收到的消息。
     
     private final ServerSocket server;
     private Socket client1;
@@ -96,7 +96,7 @@ public class Server extends AbstractSocket {
         while (!client.isClosed()) {
             try {
                 InputStream is = client.getInputStream();
-                byte[] message = receivePackage(is);
+                byte[] message = receivePacket(is);
                 printMessage(message);
                 messageQueue.add(message);
             }
@@ -109,9 +109,9 @@ public class Server extends AbstractSocket {
     public void sendToClient(int clientId, byte[] message) {
         try {
             if (clientId == 1)
-                sendPackage(client1.getOutputStream(), message);
+                sendPacket(client1.getOutputStream(), message);
             else
-                sendPackage(client2.getOutputStream(), message);
+                sendPacket(client2.getOutputStream(), message);
         }
         catch (IOException ignored) {
         }

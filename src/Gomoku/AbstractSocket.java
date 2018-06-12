@@ -1,8 +1,6 @@
 package Gomoku;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -34,22 +32,22 @@ public abstract class AbstractSocket {
     public void printMessage(byte[] message) {
         int srcSocketId = parseSocketId(message);
         StringBuilder builder = new StringBuilder();
-        if (socketId == 0)
-            builder.append("server");
-        else
-            builder.append("client").append(socketId);
-        builder.append(" receive from ");
         if (srcSocketId == 0)
             builder.append("server");
         else
             builder.append("client").append(srcSocketId);
+        builder.append(" --> ");
+        if (socketId == 0)
+            builder.append("server");
+        else
+            builder.append("client").append(socketId);
         builder.append(": { ");
         boolean flag = false;
         for (byte b : message) {
             if (flag)
                 builder.append(", ");
             flag = true;
-            builder.append(b);
+            builder.append(b & 0xFF);
         }
         builder.append(" }");
         System.out.println(builder.toString());
@@ -78,7 +76,7 @@ public abstract class AbstractSocket {
      * @param head 接收到的报文头
      */
     public static int getMessageLength(byte[] head) {
-        return ((head[1] << 24) & 0xFF) + ((head[2] << 16) & 0xFF) + ((head[3] << 8) & 0xFF) + (head[4] & 0xFF);
+        return (((head[1] & 0xFF) << 24) + ((head[2] & 0xFF) << 16) + ((head[3] & 0xFF) << 8) + (head[4] & 0xFF));
     }
     
     
@@ -87,7 +85,7 @@ public abstract class AbstractSocket {
      *
      * @param is 输入流
      */
-    public static byte[] receivePackage(InputStream is) throws IOException {
+    public static byte[] receivePacket(InputStream is) throws IOException {
         byte[] headBuffer = new byte[headLength];
         is.read(headBuffer);
         byte[] restBuffer = new byte[getMessageLength(headBuffer)];
@@ -105,7 +103,7 @@ public abstract class AbstractSocket {
      * @param os      输出流
      * @param message 待发送的报文
      */
-    public static void sendPackage(OutputStream os, byte[] message) {
+    public static void sendPacket(OutputStream os, byte[] message) {
         while (true) {
             try {
                 os.write(message);
@@ -433,12 +431,12 @@ public abstract class AbstractSocket {
      */
     protected Object[] unpackGameOver(byte[] message) {
         int winnerNumber = message[headLength];
-        int rowStoneNumber = message[headLength + 1];
+        int rowStoneNumber = (message[headLength + 1] & 0xFF);
         StoneType stoneType = (message[headLength + 2] == 1 ? StoneType.BLACK : StoneType.WHITE);
         List<Integer> indexOfRowStones = new ArrayList<Integer>();
         List<Stone> rowStones = new ArrayList<Stone>();
         for (int index = 0; index < rowStoneNumber; ++index)
-            indexOfRowStones.add((int) message[headLength + 3 + index]);
+            indexOfRowStones.add(message[headLength + 3 + index] & 0xFF);
         for (int index = 0; index < rowStoneNumber; ++index) {
             try {
                 int i = message[headLength + 3 + rowStoneNumber + 2 * index];
@@ -497,7 +495,7 @@ public abstract class AbstractSocket {
         }
         catch (StoneOutOfBoardRangeException ignored) {
         }
-        int historySize = message[headLength + 6];
+        int historySize = (message[headLength + 6] & 0xFF);
         return new Object[]{stone, previousStone, historySize};
     }
     
